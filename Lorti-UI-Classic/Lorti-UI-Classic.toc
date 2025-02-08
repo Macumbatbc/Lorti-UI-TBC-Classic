@@ -1,0 +1,16 @@
+## Interface: 20503
+## Author: Lorti, Chordsy, Macumba, Knall, Jozh, Xyz
+## Version: v19
+## Title: Lorti-UI-Classic
+## Notes: Darkens the default UI. Updated for Classic by Chordsy and modified by Macumba and his friends.
+## OptionalDeps: WideQuestLog
+## SavedVariablesPerCharacter: Lorti, LortiDB
+
+config.lua
+core\settings.lua
+core\frames.lua
+core\buffs.lua
+core\actionbars.lua
+core\auras.lua
+core\minimap.lua
+core\custom.lua

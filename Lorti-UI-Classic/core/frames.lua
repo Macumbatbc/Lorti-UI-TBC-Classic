@@ -1,0 +1,2047 @@
+  --get the addon namespace
+  local addon, ns = ...
+  --get the config values
+  local cfg = ns.cfg
+  local dragFrameList = ns.dragFrameList
+
+   local addonlist = {
+	["Shadowed Unit Frames"] = true, 
+	["PitBull Unit Frames 4.0"] = true, 
+	["X-Perl UnitFrames"] = true, 
+	["Z-Perl UnitFrames"] = true, 
+	["EasyFrames"] = true, 
+	["RougeUI"] = true, 
+	["ElvUI"] = true, 
+	["Uber UI Classic"] = true, 
+	["whoaThickFrames_BCC"] = true, 
+	["whoaUnitFrames_BCC"] = true, 
+	["AbyssUI"] = true, 
+	["KkthnxUI"] = true
+   }
+
+  -- v:SetVertexColor(.35, .35, .35) GREY
+  -- v:SetVertexColor(.05, .05, .05) DARKEST
+
+local events = {
+	"PLAYER_LOGIN",
+	"PLAYER_ENTERING_WORLD",
+	"GROUP_ROSTER_UPDATE"
+}
+
+  ---------------------------------------
+  -- ACTIONS
+  ---------------------------------------
+
+  -- REMOVING UGLY PARTS OF UI
+
+local errormessage_blocks = {
+	  'Способность пока недоступна',
+	  'Выполняется другое действие',
+	  'Невозможно делать это на ходу',
+	  'Предмет пока недоступен',
+	  'Недостаточно',
+	  'Некого атаковать',
+	  'Заклинание пока недоступно',
+	  'У вас нет цели',
+	  'Вы пока не можете этого сделать',
+
+	  'Ability is not ready yet',
+ 	  'Another action is in progress',
+	  'Can\'t attack while mounted',
+	  'Can\'t do that while moving',
+	  'Item is not ready yet',
+	  'Not enough',
+	  'Nothing to attack',
+	  'Spell is not ready yet',
+	  'You have no target',
+	  'You can\'t do that yet',
+	}
+
+local function enable()
+	local enable
+	local onevent
+	local uierrorsframe_addmessage
+	local old_uierrosframe_addmessage
+
+  	old_uierrosframe_addmessage = UIErrorsFrame.AddMessage
+  	UIErrorsFrame.AddMessage = uierrorsframe_addmessage
+end
+
+local function uierrorsframe_addmessage (frame, text, red, green, blue, id)
+  		for i,v in ipairs(errormessage_blocks) do
+    			if text and text:match(v) then
+      				return
+    			end
+  		end
+  		old_uierrosframe_addmessage(frame, text, red, green, blue, id)
+end
+
+-- COLORING FRAMES
+local CF=CreateFrame("Frame")
+CF:RegisterEvent("PLAYER_ENTERING_WORLD")
+CF:RegisterEvent("GROUP_ROSTER_UPDATE")
+
+-- Classification
+local function ApplyThickness()
+	hooksecurefunc('TargetFrame_CheckClassification', function(self, forceNormalTexture)
+		for addon in pairs(addonlist) do
+			if IsAddOnLoaded(addon) then
+				return
+			end
+		end
+			local classification = UnitClassification(self.unit);
+        if (classification == "worldboss" or classification == "elite") then
+            self.borderTexture:SetTexture("Interface\\Addons\\Lorti-UI-Classic\\textures\\target\\Thick-Elite")
+            self.borderTexture:SetVertexColor(1, 1, 1)
+        elseif (classification == "rareelite") then
+            self.borderTexture:SetTexture("Interface\\Addons\\Lorti-UI-Classic\\textures\\target\\Thick-Rare-Elite")
+            self.borderTexture:SetVertexColor(1, 1, 1)
+        elseif (classification == "rare") then
+            self.borderTexture:SetTexture("Interface\\Addons\\Lorti-UI-Classic\\textures\\target\\Thick-Rare")
+            self.borderTexture:SetVertexColor(1, 1, 1)
+        else
+            self.borderTexture:SetTexture("Interface\\Addons\\Lorti-UI-Classic\\textures\\unitframes\\UI-TargetingFrame")
+            self.borderTexture:SetVertexColor(0.05, 0.05, 0.05)
+        end
+		end)
+
+		--Player Name
+
+		PlayerFrame.name:ClearAllPoints()
+		PlayerFrame.name:SetPoint('TOP', PlayerFrameHealthBar, 0,15)
+		
+		--Rest Glow
+
+		PlayerStatusTexture:SetTexture()
+		PlayerRestGlow:SetAlpha(0)
+
+		--Player Frame
+
+		function LortiUIPlayerFrame(self)
+			-- PlayerFrameTexture:SetTexture("Interface\\Addons\\Lorti-UI-Classic\\textures\\target\\Thick-UI-TargetingFrame");
+			if Lorti.playername then
+				self.name:Hide();
+			else
+				self.name:Show();
+			end
+			self.name:ClearAllPoints();
+			self.name:SetPoint("CENTER", PlayerFrame, "CENTER",50.5, 36);
+			self.healthbar:SetPoint("TOPLEFT",106,-24);
+			self.healthbar:SetHeight(26);
+			self.healthbar.LeftText:ClearAllPoints();
+			self.healthbar.LeftText:SetPoint("LEFT",self.healthbar,"LEFT",8,0);
+			self.healthbar.RightText:ClearAllPoints();
+			self.healthbar.RightText:SetPoint("RIGHT",self.healthbar,"RIGHT",-5,0);
+			self.healthbar.TextString:SetPoint("CENTER", self.healthbar, "CENTER", 0, 0);
+			self.manabar:SetPoint("TOPLEFT",106,-52);
+			self.manabar:SetHeight(13);
+			self.manabar.LeftText:ClearAllPoints();
+			self.manabar.LeftText:SetPoint("LEFT",self.manabar,"LEFT",8,0);
+			self.manabar.RightText:ClearAllPoints();
+			self.manabar.RightText:SetPoint("RIGHT",self.manabar,"RIGHT",-5,0);
+			self.manabar.TextString:SetPoint("CENTER",self.manabar,"CENTER",0,0);
+			PlayerFrameGroupIndicatorText:ClearAllPoints();
+			PlayerFrameGroupIndicatorText:SetPoint("BOTTOMLEFT", PlayerFrame,"TOP",0,-20);
+			PlayerFrameGroupIndicatorLeft:Hide();
+			PlayerFrameGroupIndicatorMiddle:Hide();
+			PlayerFrameGroupIndicatorRight:Hide();
+			-- PlayerFrame:SetScale(1.3)
+		end
+	hooksecurefunc("PlayerFrame_ToPlayerArt", LortiUIPlayerFrame)
+		
+		--Target Frame
+
+		function LortiUITargetFrame (self, forceNormalTexture)
+			local classification = UnitClassification(self.unit);
+			self.highLevelTexture:SetPoint("CENTER", self.levelText, "CENTER", 0,0);
+			self.nameBackground:Hide();
+			self.name:SetPoint("LEFT", self, 15, 36);
+			self.healthbar:SetSize(119, 26);
+			self.healthbar:SetPoint("TOPLEFT", 5, -24);
+			self.manabar:SetPoint("TOPLEFT", 7, -52);
+			self.manabar:SetSize(119, 13);
+			self.healthbar.LeftText:SetPoint("LEFT", self.healthbar, "LEFT", 8, 0);
+			self.healthbar.RightText:SetPoint("RIGHT", self.healthbar, "RIGHT", -5, 0);
+			self.healthbar.TextString:SetPoint("CENTER", self.healthbar, "CENTER", 0, 0);
+			self.manabar.LeftText:SetPoint("LEFT", self.manabar, "LEFT", 8, 0);
+			self.manabar.RightText:ClearAllPoints();
+			self.manabar.RightText:SetPoint("RIGHT", self.manabar, "RIGHT", -5, 0);
+			self.manabar.TextString:SetPoint("CENTER", self.manabar, "CENTER", 0, 0);
+			-- TargetFrame:SetScale(1.3)
+			-- FocusFrame:SetScale(1.3)
+			TargetFrameSpellBar.Text:SetFont(Lorti.fontFamily, Lorti.StringSize-2, "OUTLINE")
+			FocusFrameSpellBar.Text:SetFont(Lorti.fontFamily, Lorti.StringSize-2, "OUTLINE")
+			if ( forceNormalTexture ) then
+				self.haveElite = nil;
+				self.Background:SetSize(119,42);
+				self.Background:SetPoint("BOTTOMLEFT", self, "BOTTOMLEFT", 7, 35);
+			else
+				self.haveElite = true;
+				self.Background:SetSize(119,42);
+			end
+			self.healthbar.lockColor = true;
+			
+		end
+		hooksecurefunc("TargetFrame_CheckClassification", LortiUITargetFrame)
+		
+		--Target of Target Frame Texture
+
+		TargetFrameToTTextureFrameTexture:SetTexture("Interface\\Addons\\Lorti-UI-Classic\\textures\\unitframes\\UI-TargetofTargetFrame");
+		TargetFrameToTHealthBar:SetHeight(8)
+		FocusFrameToTTextureFrameTexture:SetTexture("Interface\\Addons\\Lorti-UI-Classic\\textures\\unitframes\\UI-TargetofTargetFrame");
+		FocusFrameToTHealthBar:SetHeight(8)
+end
+
+local function Classify(self, forceNormalTexture)
+		local classification = UnitClassification(self.unit);
+		if ( classification == "minus" ) then
+			self.borderTexture:SetTexture("Interface\\TargetingFrame\\UI-TargetingFrame-Minus");
+			self.borderTexture:SetVertexColor(.05, .05, .05)
+			self.nameBackground:Hide();
+			self.manabar.pauseUpdates = true;
+			self.manabar:Hide();
+			self.manabar.TextString:Hide();
+			self.manabar.LeftText:Hide();
+			self.manabar.RightText:Hide();
+			forceNormalTexture = true;
+		elseif ( classification == "worldboss" or classification == "elite" ) then
+			self.borderTexture:SetTexture("Interface\\AddOns\\Lorti-UI-Classic\\textures\\target\\elite")
+			self.borderTexture:SetVertexColor(1, 1, 1)
+		elseif ( classification == "rareelite" ) then
+			self.borderTexture:SetTexture("Interface\\AddOns\\Lorti-UI-Classic\\textures\\target\\rare-elite")
+			self.borderTexture:SetVertexColor(1, 1, 1)
+		elseif ( classification == "rare" ) then
+			self.borderTexture:SetTexture("Interface\\AddOns\\Lorti-UI-Classic\\textures\\target\\rare")
+			self.borderTexture:SetVertexColor(1, 1, 1)
+		else
+			self.borderTexture:SetTexture("Interface\\TargetingFrame\\UI-TargetingFrame")
+			self.borderTexture:SetVertexColor(.05, .05, .05)
+		end
+end
+	
+local function ColorRaid()
+	for g = 1, NUM_RAID_GROUPS do
+		local group = _G["CompactRaidGroup"..g.."BorderFrame"]
+		if group then
+			for _, region in pairs({group:GetRegions()}) do
+				if region:IsObjectType("Texture") then
+					region:SetVertexColor(.05, .05, .05)
+				end
+			end
+		end
+
+		for m = 1, 5 do
+			local frame = _G["CompactRaidGroup"..g.."Member"..m]
+			if frame then
+				groupcolored = true
+				for _, region in pairs({frame:GetRegions()}) do
+					if region:GetName():find("Border") then
+						region:SetVertexColor(.05, .05, .05)
+					end
+				end
+			end
+
+			local frame = _G["CompactRaidFrame"..m]
+				if frame then
+					singlecolored = true
+					for _, region in pairs({frame:GetRegions()}) do
+						if region:GetName():find("Border") then
+							region:SetVertexColor(.05, .05, .05)
+						end
+					end
+				end
+			end
+		end
+	
+	for _, region in pairs({CompactRaidFrameContainerBorderFrame:GetRegions()}) do
+		if region:IsObjectType("Texture") then
+			region:SetVertexColor(.05, .05, .05)
+		end
+	end
+end
+
+CF:SetScript("OnEvent", function(self, event)
+		ColorRaid()
+		CF:SetScript("OnUpdate", function()
+			if CompactRaidGroup1 and not groupcolored == true then
+				ColorRaid()
+			end
+			if CompactRaidFrame1 and not singlecolored == true then
+				ColorRaid()
+			end
+		end)
+		if event == "GROUP_ROSTER_UPDATE" then return end
+		if not (IsAddOnLoaded("Shadowed Unit Frames")
+				or IsAddOnLoaded("PitBull Unit Frames 4.0")
+				or IsAddOnLoaded("X-Perl UnitFrames")) then
+
+			for i, v in pairs({
+				PlayerPVPIcon,
+				TargetFrameTextureFramePVPIcon,
+				FocusFrameTextureFramePVPIcon,
+			}) do
+				v:SetAlpha(0)
+			end
+
+			for i=1, 4 do
+				_G["PartyMemberFrame"..i.."Portrait"]:AdjustPointsOffset(0, -2)
+				_G["PartyMemberFrame"..i.."PVPIcon"]:SetAlpha(0)
+				_G["PartyMemberFrame"..i.."NotPresentIcon"]:Hide()
+				_G["PartyMemberFrame"..i.."NotPresentIcon"].Show = function() end
+				_G["PartyMemberFrame"..i.."Name"]:SetFont(Lorti.fontFamily, Lorti.StringSize-2, "OUTLINE")
+				-- _G["PartyMemberFrame"..i]:SetScale(1.6)
+			end
+
+			PlayerFrameGroupIndicator:SetAlpha(0)
+			if Lorti.hitindicator then
+				PlayerHitIndicator:SetText(nil)
+				PlayerHitIndicator.SetText = function() end
+				PetHitIndicator:SetText(nil)
+				PetHitIndicator.SetText = function() end
+			end
+		else
+			CastingBarFrameBorder:SetVertexColor(0.05,0.05,0.05)
+		end
+	end)
+	
+local Framecolor = CreateFrame("Frame")
+Framecolor:RegisterEvent("ADDON_LOADED")
+Framecolor:SetScript("OnEvent", function(self, event, addon)
+	if not (IsAddOnLoaded("Shadowed Unit Frames") or IsAddOnLoaded("PitBull Unit Frames 4.0") or IsAddOnLoaded("X-Perl UnitFrames")) then
+	   if (addon == "Lorti-UI-Classic") then
+			
+		for i,v in pairs({
+			PlayerFrameAlternateManaBarBorder,
+  			PlayerFrameAlternateManaBarLeftBorder,
+			PlayerFrameAlternateManaBarRightBorder,
+			PlayerFrameAlternatePowerBarBorder,
+			PlayerFrameAlternatePowerBarLeftBorder,
+			PlayerFrameAlternatePowerBarRightBorder,
+			-- PlayerFrameTexture,
+			TargetFrameTextureFrameTexture,
+			TargetFrameToTTextureFrameTexture,
+			PetFrameTexture,
+			PartyMemberFrame1Texture,
+			PartyMemberFrame2Texture,
+			PartyMemberFrame3Texture,
+			PartyMemberFrame4Texture,
+			PartyMemberFrame1PetFrameTexture,
+			PartyMemberFrame2PetFrameTexture,
+			PartyMemberFrame3PetFrameTexture,
+			PartyMemberFrame4PetFrameTexture,			 
+			CastingBarFrame.Border,
+			FocusFrameToTTextureFrameTexture,
+			TargetFrameSpellBar.Border,
+			FocusFrameSpellBar.Border,
+			MirrorTimer1Border,
+			MirrorTimer2Border,
+			MirrorTimer3Border
+		}) do
+			v:SetVertexColor(.05, .05, .05)
+		end
+	
+		for _, region in pairs({CompactRaidFrameManager:GetRegions()}) do
+			if region:IsObjectType("Texture") then
+				region:SetVertexColor(.05, .05, .05)
+			end
+		end
+
+		for _, region in pairs({CompactRaidFrameManagerContainerResizeFrame:GetRegions()}) do
+			if region:GetName():find("Border") then
+				region:SetVertexColor(.05, .05, .05)
+			end
+		end
+	end
+
+	for i,v in pairs({
+      		MainMenuBarLeftEndCap,
+      		MainMenuBarRightEndCap,
+      		StanceBarLeft,
+      		StanceBarMiddle,
+      		StanceBarRight
+	}) do
+   		v:SetVertexColor(.35, .35, .35)
+	end
+
+	for i,v in pairs({
+		MinimapBorder,
+		MinimapBorderTop,
+		MiniMapMailBorder,
+		MiniMapTrackingBorder,
+		MiniMapBattlefieldBorder
+	}) do
+		v:SetVertexColor(.05, .05, .05)
+   	end
+
+	for i,v in pairs({
+      		LootFrameBg,
+	  	LootFrameRightBorder,
+      		LootFrameLeftBorder,
+		LootFrameTopBorder,
+      		LootFrameBottomBorder,
+		LootFrameTopRightCorner,
+      		LootFrameTopLeftCorner,
+      		LootFrameBotRightCorner,
+      		LootFrameBotLeftCorner,
+	  	LootFrameInsetInsetTopRightCorner,
+	  	LootFrameInsetInsetTopLeftCorner,
+	 	LootFrameInsetInsetBotRightCorner,
+	  	LootFrameInsetInsetBotLeftCorner,
+      		LootFrameInsetInsetRightBorder,
+      		LootFrameInsetInsetLeftBorder,
+      		LootFrameInsetInsetTopBorder,
+      		LootFrameInsetInsetBottomBorder,
+	  	LootFramePortraitFrame,
+	  	ContainerFrame1BackgroundTop,
+	  	ContainerFrame1BackgroundMiddle1,
+	  	ContainerFrame1BackgroundBottom,
+		ContainerFrame2BackgroundTop,
+	  	ContainerFrame2BackgroundMiddle1,
+	  	ContainerFrame2BackgroundBottom,
+		ContainerFrame3BackgroundTop,
+	  	ContainerFrame3BackgroundMiddle1,
+	  	ContainerFrame3BackgroundBottom,
+		ContainerFrame4BackgroundTop,
+		ContainerFrame4BackgroundMiddle1,
+		ContainerFrame4BackgroundBottom,
+		ContainerFrame5BackgroundTop,
+		ContainerFrame5BackgroundMiddle1,
+		ContainerFrame5BackgroundBottom,
+		ContainerFrame6BackgroundTop,
+		ContainerFrame6BackgroundMiddle1,
+		ContainerFrame6BackgroundBottom,
+		ContainerFrame7BackgroundTop,
+	  	ContainerFrame7BackgroundMiddle1,
+	  	ContainerFrame7BackgroundBottom,
+	  	ContainerFrame8BackgroundTop,
+	  	ContainerFrame8BackgroundMiddle1,
+	  	ContainerFrame8BackgroundBottom,
+	  	ContainerFrame9BackgroundTop,
+	  	ContainerFrame9BackgroundMiddle1,
+	  	ContainerFrame9BackgroundBottom,
+	  	ContainerFrame10BackgroundTop,
+	  	ContainerFrame10BackgroundMiddle1,
+	  	ContainerFrame10BackgroundBottom,
+	  	ContainerFrame11BackgroundTop,
+	  	ContainerFrame11BackgroundMiddle1,
+	  	ContainerFrame11BackgroundBottom,
+	  	MerchantFrameTopBorder,
+	  	MerchantFrameBtnCornerRight,
+	  	MerchantFrameBtnCornerLeft,
+	 	MerchantFrameBottomRightBorder,
+	  	MerchantFrameBottomLeftBorder,
+	  	MerchantFrameButtonBottomBorder,
+	  	MerchantFrameBg,
+	}) do
+   		v:SetVertexColor(.35, .35, .35)
+	end
+
+--BANK
+local a, b, c, d, _, e = BankFrame:GetRegions()
+for _, v in pairs({a, b, c, d, e
+
+})do
+   v:SetVertexColor(.35, .35, .35)
+
+end
+
+--Darker color stuff
+for i,v in pairs({
+      	LootFrameInsetBg,
+      	LootFrameTitleBg,	
+	MerchantFrameTitleBg,
+
+}) do
+   v:SetVertexColor(.05, .05, .05)
+end
+
+--PAPERDOLL/Characterframe
+local a, b, c, d, _, e = PaperDollFrame:GetRegions()
+for _, v in pairs({a, b, c, d, e
+
+})do
+   v:SetVertexColor(.35, .35, .35)
+
+end
+
+--Spellbook
+local _, a, b, c, d = SpellBookFrame:GetRegions()
+for _, v in pairs({a, b, c, d
+
+}) do
+    v:SetVertexColor(.35, .35, .35)
+end
+
+
+
+-- Skilltab
+local a, b, c, d = SkillFrame:GetRegions()
+for _, v in pairs({a, b, c ,d
+
+}) do
+     v:SetVertexColor(.35, .35, .35)
+end
+for _, v in pairs({ReputationDetailCorner, ReputationDetailDivider
+
+}) do
+     v:SetVertexColor(.35, .35, .35)
+end
+--Reputation Frame
+local a, b, c, d = ReputationFrame:GetRegions()
+for _, v in pairs({a, b, c, d
+
+}) do
+     v:SetVertexColor(.35, .35, .35)
+end
+
+
+
+-- HONOR
+
+local a, b, c, d, e = PVPFrame:GetRegions()
+for _, v in pairs({a, b, c, d, e 
+
+}) do
+   v:SetVertexColor(.35, .35, .35)
+end
+
+--Character Tabs
+
+local a, b, c, d, e, f, g, h = CharacterFrameTab1:GetRegions()
+	for _, v in pairs({a, b, c, d, e, f}) do
+  		v:SetVertexColor(0.35,0.35,0.35)
+end
+
+local a, b, c, d, e, f, g, h = CharacterFrameTab2:GetRegions()
+	for _, v in pairs({a, b, c, d, e, f}) do
+  		v:SetVertexColor(0.35,0.35,0.35)
+end
+
+local a, b, c, d, e, f, g, h = CharacterFrameTab3:GetRegions()
+	for _, v in pairs({a, b, c, d, e, f}) do
+  		v:SetVertexColor(0.35,0.35,0.35)
+end
+
+local a, b, c, d, e, f, g, h = CharacterFrameTab4:GetRegions()
+	for _, v in pairs({a, b, c, d, e, f}) do
+  		v:SetVertexColor(0.35,0.35,0.35)
+end
+
+local a, b, c, d, e, f, g, h = CharacterFrameTab5:GetRegions()
+	for _, v in pairs({a, b, c, d, e, f}) do
+  		v:SetVertexColor(0.35,0.35,0.35)
+end				
+
+
+
+-- Social Frame
+local a, b, c, d, e, f, g, _, i, j, k, l, n, o, p, q, r, _, _ = FriendsFrame:GetRegions()
+for _, v in pairs({
+	a, b, c, d, e, f, g, h, i, j, k, l, n, o, p, q, r,
+	FriendsFrameInset:GetRegions(),
+	WhoFrameListInset:GetRegions()
+}) do
+	v:SetVertexColor(.35, .35, .35)
+end
+
+FriendsFrameInsetInsetBottomBorder:SetVertexColor(0.35,0.35,0.35)
+WhoFrameEditBoxInset:GetRegions():SetVertexColor(0.35,0.35,0.35)
+WhoFrameDropDownLeft:SetVertexColor(0.5,0.5,0.5)
+WhoFrameDropDownMiddle:SetVertexColor(0.5,0.5,0.5)
+WhoFrameDropDownRight:SetVertexColor(0.5,0.5,0.5)
+
+local a, b, c, d, e, f, g, h, i = WhoFrameEditBoxInset:GetRegions()
+for _, v in pairs({a, b, c, d, e, f, g, h, i}) do
+	v:SetVertexColor(0.35,0.35,0.35)
+end
+
+local a, b, c, d, e, f, g, h = FriendsFrameTab1:GetRegions()
+	for _, v in pairs({a, b, c, d, e, f}) do
+  		v:SetVertexColor(0.35,0.35,0.35)
+end
+
+local a, b, c, d, e, f, g, h = FriendsFrameTab2:GetRegions()
+	for _, v in pairs({a, b, c, d, e, f}) do
+  		v:SetVertexColor(0.35,0.35,0.35)
+end
+
+local a, b, c, d, e, f, g, h = FriendsFrameTab3:GetRegions()
+	for _, v in pairs({a, b, c, d, e, f}) do
+  		v:SetVertexColor(0.35,0.35,0.35)
+end
+
+local a, b, c, d, e, f, g, h = FriendsFrameTab4:GetRegions()
+	for _, v in pairs({a, b, c, d, e, f}) do
+  		v:SetVertexColor(0.35,0.35,0.35)
+end
+-- MERCHANT
+local _, a, b, c, d, _, _, _, e, f, g, h, j, k = MerchantFrame:GetRegions()
+for _, v in pairs({a, b, c ,d, e, f, g, h, j, k
+
+}) do
+   v:SetVertexColor(.35, .35, .35)
+end
+
+--MerchantPortrait
+		   
+																		   
+for i, v in pairs({
+    MerchantFramePortrait
+}) do
+   v:SetVertexColor(1, 1, 1)
+end
+
+--PETPAPERDOLL/PET Frame
+local a, b, c, d, _, e = PetPaperDollFrame:GetRegions()
+for _, v in pairs({a, b, c, d, e
+
+})do
+   v:SetVertexColor(.35, .35, .35)
+
+end
+
+-- SPELLBOOK
+local _, a, b, c, d = SpellBookFrame:GetRegions()
+for _, v in pairs({a, b, c, d}) do
+     v:SetVertexColor(.35, .35, .35)
+end
+
+ SpellBookFrame.Material = SpellBookFrame:CreateTexture(nil, 'OVERLAY', nil, 7)
+ SpellBookFrame.Material:SetTexture[[Interface\AddOns\Lorti-UI-Classic\textures\quest\QuestBG.tga]]
+ SpellBookFrame.Material:SetWidth(547)
+ SpellBookFrame.Material:SetHeight(541)
+ SpellBookFrame.Material:SetPoint('TOPLEFT', SpellBookFrame, 22, -74)
+ SpellBookFrame.Material:SetVertexColor(.7, .7, .7)
+
+-- TinyBook's SPELLBOOK
+if (IsAddOnLoaded("TinyBook")) then
+local _, a, b, c, d = TSB_SpellBookFrame:GetRegions()
+for _, v in pairs({a, b, c, d}) do
+     v:SetVertexColor(.35, .35, .35)
+end
+
+ TSB_SpellBookFrame.Material = TSB_SpellBookFrame:CreateTexture(nil, 'OVERLAY', nil, 7)
+ TSB_SpellBookFrame.Material:SetTexture[[Interface\AddOns\Lorti-UI-Classic\textures\quest\QuestBG.tga]]
+ TSB_SpellBookFrame.Material:SetWidth(547)
+ TSB_SpellBookFrame.Material:SetHeight(541)
+ TSB_SpellBookFrame.Material:SetPoint('TOPLEFT', TSB_SpellBookFrame, 22, -74)
+ TSB_SpellBookFrame.Material:SetVertexColor(.7, .7, .7)
+end
+
+-- Quest Log Frame
+if (IsAddOnLoaded("WideQuestLog")) then
+	QuestLogFrame.Material = QuestLogFrame:CreateTexture(nil, 'OVERLAY', nil, 7)
+	QuestLogFrame.Material:SetTexture[[Interface\AddOns\Lorti-UI-Classic\textures\quest\QuestBG.tga]]
+	QuestLogFrame.Material:SetWidth(524)
+	QuestLogFrame.Material:SetHeight(553)
+	QuestLogFrame.Material:SetPoint('TOPLEFT', QuestLogDetailScrollFrame, -10, 0)
+	QuestLogFrame.Material:SetVertexColor(.8, .8, .8)
+else
+
+	local _, _, a, b, c, d, _, _, _, e, f, g, h, j, k = QuestLogFrame:GetRegions()
+	for _, v in pairs({a, b, c ,d, e, f, g, h, j, k}) do
+		v:SetVertexColor(.35, .35, .35)
+	end
+ 
+	QuestLogFrame.Material = QuestLogFrame:CreateTexture(nil, 'OVERLAY', nil, 7)
+	QuestLogFrame.Material:SetTexture[[Interface\AddOns\Lorti-UI-Classic\textures\quest\QuestBG.tga]]
+	QuestLogFrame.Material:SetWidth(514)
+	QuestLogFrame.Material:SetHeight(400)
+	QuestLogFrame.Material:SetPoint('TOPLEFT', QuestLogDetailScrollFrame, 0, 0)
+	QuestLogFrame.Material:SetVertexColor(.8, .8, .8) 
+end	
+
+-- Gossip Frame
+local a, b, c, d, e, f, g, h, i = GossipFrameGreetingPanel:GetRegions()
+	for _, v in pairs({a, b, c, d, e, f, g, h, i}) do
+  		v:SetVertexColor(0.35,0.35,0.35)
+end
+
+GossipFrameGreetingPanel.Material = GossipFrameGreetingPanel:CreateTexture(nil, 'OVERLAY', nil, 7)
+GossipFrameGreetingPanel.Material:SetTexture[[Interface\AddOns\Lorti-UI-Classic\textures\quest\QuestBG.tga]]
+GossipFrameGreetingPanel.Material:SetWidth(514)
+GossipFrameGreetingPanel.Material:SetHeight(522)
+GossipFrameGreetingPanel.Material:SetPoint('TOPLEFT', GossipFrameGreetingPanel, 22, -74)
+GossipFrameGreetingPanel.Material:SetVertexColor(0.7,0.7,0.7)	
+
+-- Quest Frame Reward panel
+local a, b, c, d, e, f, g, h, i = QuestFrameRewardPanel:GetRegions()
+	for _, v in pairs({a, b, c, d, e, f, g, h, i}) do
+  		v:SetVertexColor(0.35,0.35,0.35)
+end
+
+QuestFrameRewardPanel.Material = QuestFrameRewardPanel:CreateTexture(nil, 'OVERLAY', nil, 7)
+QuestFrameRewardPanel.Material:SetTexture[[Interface\AddOns\Lorti-UI-Classic\textures\quest\QuestBG.tga]]
+QuestFrameRewardPanel.Material:SetWidth(514)
+QuestFrameRewardPanel.Material:SetHeight(522)
+QuestFrameRewardPanel.Material:SetPoint('TOPLEFT', QuestFrameRewardPanel, 22, -74)
+QuestFrameRewardPanel.Material:SetVertexColor(0.7,0.7,0.7)
+
+--Mailbox
+
+for i, v in pairs({
+	MailFrameBg,
+    MailFrameBotLeftCorner,
+	MailFrameBotRightCorner,
+	MailFrameBottomBorder,
+	MailFrameBtnCornerLeft,
+	MailFrameBtnCornerRight,
+	MailFrameButtonBottomBorder,
+	MailFrameLeftBorder,
+	MailFramePortraitFrame,
+	MailFrameRightBorder,
+	MailFrameTitleBg,
+	MailFrameTopBorder,
+	MailFrameTopLeftCorner,
+	MailFrameTopRightCorner,
+	MailFrameInsetInsetBottomBorder,
+	MailFrameInsetInsetBotLeftCorner,
+	MailFrameInsetInsetBotRightCorner,
+	
+}) do
+   v:SetVertexColor(0.35,0.35,0.35)
+end
+
+local a, b, c, d, e, f, g, h = MailFrameTab1:GetRegions()
+	for _, v in pairs({a, b, c, d, e, f}) do
+  		v:SetVertexColor(0.35,0.35,0.35)
+end
+
+local a, b, c, d, e, f, g, h = MailFrameTab2:GetRegions()
+	for _, v in pairs({a, b, c, d, e, f}) do
+  		v:SetVertexColor(0.35,0.35,0.35)
+end
+ --THINGS THAT SHOULD REMAIN THE REGULAR COLOR
+for i,v in pairs({
+	BankPortraitTexture,
+	BankFrameTitleText,
+	MerchantFramePortrait,
+	WhoFrameTotals																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																													
+}) do
+   v:SetVertexColor(1, 1, 1)
+end
+
+for i,v in pairs({
+	SlidingActionBarTexture0,
+      	SlidingActionBarTexture1,
+      	MainMenuBarTexture0,
+      	MainMenuBarTexture1,
+      	MainMenuBarTexture2,
+      	MainMenuBarTexture3,
+      	MainMenuMaxLevelBar0,
+      	MainMenuMaxLevelBar1,
+      	MainMenuMaxLevelBar2,
+      	MainMenuMaxLevelBar3,
+	MainMenuXPBarTexture0,
+	MainMenuXPBarTexture1,
+	MainMenuXPBarTexture2,
+	MainMenuXPBarTexture3,
+	MainMenuXPBarTexture4,
+	ReputationWatchBar.StatusBar.WatchBarTexture0,
+      	ReputationWatchBar.StatusBar.WatchBarTexture1,
+      	ReputationWatchBar.StatusBar.WatchBarTexture2,
+      	ReputationWatchBar.StatusBar.WatchBarTexture3,
+	ReputationWatchBar.StatusBar.XPBarTexture0,
+	ReputationWatchBar.StatusBar.XPBarTexture1,
+	ReputationWatchBar.StatusBar.XPBarTexture2,
+	ReputationWatchBar.StatusBar.XPBarTexture3,
+
+	}) do
+
+   v:SetVertexColor(.2, .2, .2)
+
+end
+
+	CompactRaidFrameManagerToggleButton:SetNormalTexture("Interface\\AddOns\\Lorti-UI-Classic\\textures\\raid\\RaidPanel-Toggle")
+
+
+	GameTooltip:SetBackdropBorderColor(.05, .05, .05)
+	GameTooltip.SetBackdropBorderColor = function() end
+	end
+
+
+local a, b, c, d, e, f, g, h, i = QuestFrameDetailPanel:GetRegions()
+	for _, v in pairs({a, b, c, d, e, f, g, h, i}) do
+  		v:SetVertexColor(0.35,0.35,0.35)
+end
+
+QuestFrameDetailPanel.Material = QuestFrameDetailPanel:CreateTexture(nil, 'OVERLAY', nil, 7)
+QuestFrameDetailPanel.Material:SetTexture[[Interface\AddOns\Lorti-UI-Classic\textures\quest\QuestBG.tga]]
+QuestFrameDetailPanel.Material:SetWidth(514)
+QuestFrameDetailPanel.Material:SetHeight(522)
+QuestFrameDetailPanel.Material:SetPoint('TOPLEFT', QuestFrameDetailPanel, 22, -74)
+QuestFrameDetailPanel.Material:SetVertexColor(0.7,0.7,0.7)
+
+local a, b, c, d, e, f, g, h, i = QuestFrameProgressPanel:GetRegions()
+	for _, v in pairs({a, b, c, d, e, f, g, h, i}) do
+  		v:SetVertexColor(0.35,0.35,0.35)
+end
+
+QuestFrameProgressPanel.Material = QuestFrameProgressPanel:CreateTexture(nil, 'OVERLAY', nil, 7)
+QuestFrameProgressPanel.Material:SetTexture[[Interface\AddOns\Lorti-UI-Classic\textures\quest\QuestBG.tga]]
+QuestFrameProgressPanel.Material:SetWidth(514)
+QuestFrameProgressPanel.Material:SetHeight(522)
+QuestFrameProgressPanel.Material:SetPoint('TOPLEFT', QuestFrameProgressPanel, 22, -74)
+QuestFrameProgressPanel.Material:SetVertexColor(0.7,0.7,0.7)
+
+-- LFG/LFM Frame
+if(LFGFrame ~= nil) then
+LFGParentFrameBackground:SetVertexColor(0.35,0.35,0.35)
+
+local a, b, c, d, e, f, g, h = LFGParentFrameTab1:GetRegions()
+	for _, v in pairs({a, b, c, d, e, f}) do
+  		v:SetVertexColor(0.35,0.35,0.35)
+end
+
+local a, b, c, d, e, f, g, h = LFGParentFrameTab2:GetRegions()
+	for _, v in pairs({a, b, c, d, e, f}) do
+  		v:SetVertexColor(0.35,0.35,0.35)
+end
+end
+-- Dropdown Lists
+
+for i, v in pairs({
+	DropDownList1MenuBackdrop.BottomEdge,
+	DropDownList1MenuBackdrop.BottomLeftCorner,
+	DropDownList1MenuBackdrop.BottomRightCorner,
+	DropDownList1MenuBackdrop.LeftEdge,
+	DropDownList1MenuBackdrop.RightEdge,
+	DropDownList1MenuBackdrop.TopEdge,
+	DropDownList1MenuBackdrop.TopLeftCorner,
+	DropDownList1MenuBackdrop.TopRightCorner,
+	DropDownList2MenuBackdrop.BottomEdge,
+	DropDownList2MenuBackdrop.BottomLeftCorner,
+	DropDownList2MenuBackdrop.BottomRightCorner,
+	DropDownList2MenuBackdrop.LeftEdge,
+	DropDownList2MenuBackdrop.RightEdge,
+	DropDownList2MenuBackdrop.TopEdge,
+	DropDownList2MenuBackdrop.TopLeftCorner,
+	DropDownList2MenuBackdrop.TopRightCorner,
+}) do
+	v:SetVertexColor(0,0,0)
+end
+
+-- Color Picker Frame
+
+for i, v in pairs({
+	ColorPickerFrame.BottomEdge,
+	ColorPickerFrame.BottomLeftCorner,
+	ColorPickerFrame.BottomRightCorner,
+	ColorPickerFrame.LeftEdge,
+	ColorPickerFrame.RightEdge,
+	ColorPickerFrame.TopEdge,
+	ColorPickerFrame.TopLeftCorner,
+	ColorPickerFrame.TopRightCorner,
+	ColorPickerFrameHeader,
+}) do
+	v:SetVertexColor(0.35,0.35,0.35)
+end
+
+-- Keyring
+
+local a, b, c, d = KeyRingButton:GetRegions()
+	for _, v in pairs({b}) do
+  		v:SetVertexColor(0.55,0.55,0.55)
+end
+
+-- Action Bar Arrows
+
+local a, b, c, d = ActionBarUpButton:GetRegions()
+	for _, v in pairs({a}) do
+  		v:SetVertexColor(0.35,0.35,0.35)
+end
+
+local a, b, c, d = ActionBarDownButton:GetRegions()
+	for _, v in pairs({a}) do
+  		v:SetVertexColor(0.35,0.35,0.35)
+end
+
+MainMenuBarPageNumber:SetVertexColor(0.35,0.35,0.35)
+
+-- Micro Buttons
+
+local a, b, c, d = CharacterMicroButton:GetRegions()
+	for _, v in pairs({b, c}) do
+  		v:SetVertexColor(0.65,0.65,0.65)
+end
+
+local a, b, c, d = SpellbookMicroButton:GetRegions()
+	for _, v in pairs({b}) do
+  		v:SetVertexColor(0.65,0.65,0.65)
+end
+
+local a, b, c, d = TalentMicroButton:GetRegions()
+	for _, v in pairs({b}) do
+	  	v:SetVertexColor(0.65,0.65,0.65)
+end
+
+local a, b, c, d = QuestLogMicroButton:GetRegions()
+	for _, v in pairs({b}) do
+  		v:SetVertexColor(0.65,0.65,0.65)
+end
+
+local a, b, c, d = SocialsMicroButton:GetRegions()
+	for _, v in pairs({b}) do
+  		v:SetVertexColor(0.65,0.65,0.65)
+end
+
+local a, b, c, d = LFGMicroButton:GetRegions()
+	for _, v in pairs({b}) do
+  		v:SetVertexColor(0.65,0.65,0.65)
+end
+
+local a, b, c, d = MainMenuMicroButton:GetRegions()
+	for _, v in pairs({c}) do
+  		v:SetVertexColor(0.65,0.65,0.65)
+end
+
+local a, b, c, d = HelpMicroButton:GetRegions()
+	for _, v in pairs({b}) do
+  		v:SetVertexColor(0.65,0.65,0.65)
+end
+
+local a, b, c, d = MainMenuBarBackpackButton:GetRegions()
+	for _, v in pairs({a, b, c, d}) do
+  		v:SetVertexColor(0.65,0.65,0.65)
+end
+
+for i=0,3 do
+	_G["CharacterBag"..i.."Slot"]:GetRegions()
+	for _, v in pairs({a, b, c, d}) do
+  		v:SetVertexColor(0.65,0.65,0.65)
+end
+end
+-- local a, b, c, d = CharacterBag0Slot:GetRegions()
+--	for _, v in pairs({a, b, c, d}) do
+--  		v:SetVertexColor(0.65,0.65,0.65)
+-- end
+-- local a, b, c, d = CharacterBag1Slot:GetRegions()
+--	for _, v in pairs({a, b, c, d}) do
+--  		v:SetVertexColor(0.65,0.65,0.65)
+-- end
+-- local a, b, c, d = CharacterBag2Slot:GetRegions()
+-- 	for _, v in pairs({a, b, c, d}) do
+--  		v:SetVertexColor(0.65,0.65,0.65)
+-- end
+-- local a, b, c, d = CharacterBag3Slot:GetRegions()
+-- 	for _, v in pairs({a, b, c, d}) do
+--   		v:SetVertexColor(0.65,0.65,0.65)
+-- end
+
+local a, b, c, d = MiniMapWorldMapButton:GetRegions()
+	for _, v in pairs({a, b, c, d}) do
+  		v:SetVertexColor(0.65,0.65,0.65)
+end
+
+for i, v in pairs({
+	PlayerTitleDropDownLeft,
+	PlayerTitleDropDownMiddle,
+	PlayerTitleDropDownRight,
+	PlayerTitleDropDownButtonNormalTexture,
+}) do
+	v:SetVertexColor(0.35,0.35,0.35)
+end
+
+local a, b, c, d, e, f, g, h = BattlefieldFrame:GetRegions()
+for _, v in pairs({b, c, d, e}) do
+	v:SetVertexColor(0.35,0.35,0.35)
+end
+
+local a, b, c, d, e, f, g, h = ArenaFrame:GetRegions()
+for _, v in pairs({b, c, d, e}) do
+	v:SetVertexColor(0.35,0.35,0.35)
+end
+
+if(CraftFrame ~= nil) then
+local a, b, c, d, e, f, g, h = CraftFrame:GetRegions()
+for _, v in pairs({b, c, d, e}) do
+	v:SetVertexColor(0.35,0.35,0.35)
+end
+end
+
+if(TradeFrame ~= nil) then
+local a, b, c, d, e, f, g, h = TradeFrame:GetRegions()
+for _, v in pairs({b, c, d, e}) do
+	v:SetVertexColor(0.35,0.35,0.35)
+end
+end
+
+-- ItemSocketingFrame
+if(ItemSocketingFrame ~= nil) then
+	local a, b, c, d, e, f, g, h = ItemSocketingFrame:GetRegions()
+	for _, v in pairs({a, b, d, e}) do
+	v:SetVertexColor(0.35,0.35,0.35)
+	end
+end
+	if addon == "Blizzard_TimeManager" then
+		for _, v in pairs({StopwatchFrame:GetRegions()})do
+			v:SetVertexColor(.35, .35, .35)
+		end
+		
+		local a, b, c = StopwatchTabFrame:GetRegions()
+		for _, v in pairs({a, b, c})do
+			v:SetVertexColor(.35, .35, .35)
+		end
+		
+		local a, b, c, d, e, f, g, h, i, j, k, l, n, o, p, q, r =  TimeManagerFrame:GetRegions()
+		for _, v in pairs({a, b, c, d, e, f, g, h, i, j, k, l, n, o, p, q, r})do
+			v:SetVertexColor(.35, .35, .35)
+		end
+		
+		for _, v in pairs({TimeManagerFrameInset:GetRegions()})do
+			v:SetVertexColor(.65, .65, .65)
+		end
+		
+        TimeManagerClockButton:GetRegions():SetVertexColor(.05, .05, .05)	
+	end
+	
+	--RECOLOR TALENTS
+	
+	if addon == "Blizzard_TalentUI" then
+		local _, a, b, c, d, _, _, _, _, _, e, f, g = PlayerTalentFrame:GetRegions()
+		
+		for _, v in pairs({a, b, c, d, e, f, g})do
+			v:SetVertexColor(.35, .35, .35)
+		end
+	end
+	
+	--RECOLOR TRADESKILL
+	
+	if addon == "Blizzard_TradeSkillUI" then
+		local _, a, b, c, d, _, e, f, g, h = TradeSkillFrame:GetRegions()
+		
+		for _, v in pairs({ a, b, c, d, e, f, g, h})do
+			v:SetVertexColor(.35, .35, .35)
+		end
+	end
+	
+	-- ClassTrainerFrame
+	if addon == "Blizzard_TrainerUI" then
+	local _, a, b, c, d, _, e, f, g, h = ClassTrainerFrame:GetRegions()
+		
+		for _, v in pairs({ a, b, c, d, e, f, g, h})do
+			v:SetVertexColor(.35, .35, .35)
+		end
+	end
+	
+	-- MacroFrame
+	if(MacroFrame ~= nil) then
+	local a, b, c, d, e, f, g, h, i, j, k, l, n, o, p, q, r = MacroFrame:GetRegions()
+		
+		for _, v in pairs({a, b, c, d, e, f, g, h, i, j, k, l, n, o, p, q, r})do
+			v:SetVertexColor(.35, .35, .35)
+		end
+	end
+	-- InspectFrame/InspectTalentFrame/InspectPVPFrame
+	if addon == "Blizzard_InspectUI" then
+		local _, a, b, c, d, _, _, _, _, _, e, f, g = InspectTalentFrame:GetRegions()
+		
+		for _, v in pairs({a, b, c, d, e, f, g})do
+			v:SetVertexColor(.35, .35, .35)
+		end
+	
+		local a, b, c, d, _, e = InspectPaperDollFrame:GetRegions()
+		for _, v in pairs({a, b, c, d, e})do
+			v:SetVertexColor(.35, .35, .35)
+		end
+		
+		local a, b, c, d, e = InspectPVPFrame:GetRegions()
+		for _, v in pairs({a, b, c, d, e }) do
+			v:SetVertexColor(.35, .35, .35)
+		end
+	end
+	
+	--UNREGISTER WHEN DONE 
+											
+	if (IsAddOnLoaded("Blizzard_TalentUI") and IsAddOnLoaded("Blizzard_InspectUI") and IsAddOnLoaded("Blizzard_TimeManager") and IsAddOnLoaded("Blizzard_TradeSkillUI") and IsAddOnLoaded("Lorti-UI-Classic")) then
+	self:UnregisterEvent("ADDON_LOADED")
+	Framecolor:SetScript("OnEvent", nil)
+	end
+end)
+
+--Health and Mana Text Shadows
+
+PlayerFrameHealthBar.TextString:SetShadowOffset(1,-1)
+PlayerFrameHealthBar.TextString:SetShadowColor(0,0,0)
+PlayerFrameHealthBar.LeftText:SetShadowOffset(1,-1)
+PlayerFrameHealthBar.LeftText:SetShadowColor(0,0,0)
+PlayerFrameHealthBar.RightText:SetShadowOffset(1,-1)
+PlayerFrameHealthBar.RightText:SetShadowColor(0,0,0)
+
+PlayerFrameManaBar.TextString:SetShadowOffset(1,-1)
+PlayerFrameManaBar.TextString:SetShadowColor(0,0,0)
+PlayerFrameManaBar.LeftText:SetShadowOffset(1,-1)
+PlayerFrameManaBar.LeftText:SetShadowColor(0,0,0)
+PlayerFrameManaBar.RightText:SetShadowOffset(1,-1)
+PlayerFrameManaBar.RightText:SetShadowColor(0,0,0)
+
+PetFrameHealthBar.TextString:SetShadowOffset(1,-1)
+PetFrameHealthBar.TextString:SetShadowColor(0,0,0)
+PetFrameHealthBar.LeftText:SetShadowOffset(1,-1)
+PetFrameHealthBar.LeftText:SetShadowColor(0,0,0)
+PetFrameHealthBar.RightText:SetShadowOffset(1,-1)
+PetFrameHealthBar.RightText:SetShadowColor(0,0,0)
+
+PetFrameManaBar.TextString:SetShadowOffset(1,-1)
+PetFrameManaBar.TextString:SetShadowColor(0,0,0)
+PetFrameManaBar.LeftText:SetShadowOffset(1,-1)
+PetFrameManaBar.LeftText:SetShadowColor(0,0,0)
+PetFrameManaBar.RightText:SetShadowOffset(1,-1)
+PetFrameManaBar.RightText:SetShadowColor(0,0,0)
+
+TargetFrameHealthBar.TextString:SetShadowOffset(1,-1)
+TargetFrameHealthBar.TextString:SetShadowColor(0,0,0)
+TargetFrameHealthBar.LeftText:SetShadowOffset(1,-1)
+TargetFrameHealthBar.LeftText:SetShadowColor(0,0,0)
+TargetFrameHealthBar.RightText:SetShadowOffset(1,-1)
+TargetFrameHealthBar.RightText:SetShadowColor(0,0,0)
+
+TargetFrameManaBar.TextString:SetShadowOffset(1,-1)
+TargetFrameManaBar.TextString:SetShadowColor(0,0,0)
+TargetFrameManaBar.LeftText:SetShadowOffset(1,-1)
+TargetFrameManaBar.LeftText:SetShadowColor(0,0,0)
+TargetFrameManaBar.RightText:SetShadowOffset(1,-1)
+TargetFrameManaBar.RightText:SetShadowColor(0,0,0)
+
+FocusFrameHealthBar.TextString:SetShadowOffset(1,-1)
+FocusFrameHealthBar.TextString:SetShadowColor(0,0,0)
+FocusFrameHealthBar.LeftText:SetShadowOffset(1,-1)
+FocusFrameHealthBar.LeftText:SetShadowColor(0,0,0)
+FocusFrameHealthBar.RightText:SetShadowOffset(1,-1)
+FocusFrameHealthBar.RightText:SetShadowColor(0,0,0)
+
+FocusFrameManaBar.TextString:SetShadowOffset(1,-1)
+FocusFrameManaBar.TextString:SetShadowColor(0,0,0)
+FocusFrameManaBar.LeftText:SetShadowOffset(1,-1)
+FocusFrameManaBar.LeftText:SetShadowColor(0,0,0)
+FocusFrameManaBar.RightText:SetShadowOffset(1,-1)
+FocusFrameManaBar.RightText:SetShadowColor(0,0,0)
+
+PetFrameManaBar.TextString:AdjustPointsOffset(0,4)
+PetFrameManaBar.LeftText:AdjustPointsOffset(0,4)
+PetFrameManaBar.RightText:AdjustPointsOffset(0,4)
+
+--Target of Target And Pet Frame Alignments
+
+TargetFrameToTBackground:AdjustPointsOffset(2,2)
+TargetFrameToTPortrait:SetScale(1.1)
+TargetFrameToTPortrait:AdjustPointsOffset(-3,3)
+FocusFrameToTBackground:AdjustPointsOffset(2,2)
+FocusFrameToTPortrait:SetScale(1.1)
+FocusFrameToTPortrait:AdjustPointsOffset(-3,3)
+PetFrameHealthBar:AdjustPointsOffset(-1,-1)
+PetFrameManaBar:AdjustPointsOffset(-1,-1)
+
+--Minimap Alignment & Hiding World Map Button and Top Border
+
+MiniMapWorldMapButton:SetAlpha(0)
+MinimapBorderTop:SetAlpha(0)
+MinimapZoneText:SetPoint('CENTER', Minimap, 'TOP', 0, 10)
+MinimapZoneText:SetShadowOffset(2,-2)
+MinimapZoneText:SetShadowColor(0,0,0)
+
+--Tooptip HP Bar Alignment
+
+GameTooltipStatusBar:AdjustPointsOffset(0,8)
+GameTooltipStatusBar:SetSize(1,2)
+
+-- Reputation and XP bar hack to make it always shown
+
+SetCVar("xpBarText", 1)
+
+
+
+
+
+-- Helper function to create a font string
+local function CreateText(name, parentName, parent, point, x, y)
+    local fontString = parent:CreateFontString(parentName .. name, nil, "GameFontNormalSmall")
+    fontString:SetPoint(point, parent, point, x, y)
+    return fontString
+end
+
+-- Create dead/ghost/offline text frames on unit frames.
+function ns.createDeadTextFrames()
+	local L = {}
+	local locale = GetLocale()
+
+	if locale == "frFR" then
+		L.GHOST   = "Fantôme"
+	elseif locale == "deDE" then
+		L.GHOST   = "Geist"
+	elseif locale == "esES" or locale == "esMX" then
+		L.GHOST   = "Fantasma"
+	elseif locale == "ruRU" then
+		L.GHOST   = "Призрак"
+	elseif locale == "zhCN" then
+		L.GHOST   = "幽灵"
+	elseif locale == "zhTW" then
+		L.GHOST   = "幽靈"
+	elseif locale == "koKR" then
+		L.GHOST   = "유령"
+	else
+		L.GHOST   = "GHOST"
+	end
+	ns.LGhost = L.GHOST
+    -- For the player frame:
+    local deadText = CreateText("DeadText", "PlayerFrame", PlayerFrameHealthBar, "CENTER", 0, 0)
+	deadText:SetFont(Lorti.fontFamily, Lorti.StringSize-2, "OUTLINE")
+    deadText:SetText(DEAD)  -- using Blizzard's global constant for "Dead"
+    local ghostText = CreateText("GhostText", "PlayerFrame", PlayerFrameHealthBar, "CENTER", 0, 0)
+	ghostText:SetFont(Lorti.fontFamily, Lorti.StringSize-2, "OUTLINE")
+    ghostText:SetText(L.GHOST)
+    -- For the target frame:
+    ghostText = CreateText("GhostText", "TargetFrame", TargetFrameHealthBar, "CENTER", 0, 0)
+	ghostText:SetFont(Lorti.fontFamily, Lorti.StringSize-2, "OUTLINE")
+    ghostText:SetText(L.GHOST)
+    local offlineText = CreateText("OfflineText", "TargetFrame", TargetFrameHealthBar, "CENTER", 0, 0)
+	offlineText:SetFont(Lorti.fontFamily, Lorti.StringSize-2, "OUTLINE")
+    offlineText:SetText(PLAYER_OFFLINE)
+    -- For the focus frame:
+    ghostText = CreateText("GhostText", "FocusFrame", FocusFrameHealthBar, "CENTER", 0, 0)
+	ghostText:SetFont(Lorti.fontFamily, Lorti.StringSize-2, "OUTLINE")
+    ghostText:SetText(L.GHOST)
+    offlineText = CreateText("OfflineText", "FocusFrame", FocusFrameHealthBar, "CENTER", 0, 0)
+	offlineText:SetFont(Lorti.fontFamily, Lorti.StringSize-2, "OUTLINE")
+    offlineText:SetText(PLAYER_OFFLINE)
+	
+	
+	-- Create a font string on each PartyMemberFrame for status text if it doesn’t already exist.
+local function CreatePartyDeadTexts()
+    for i = 1, 4 do
+        local frame = _G["PartyMemberFrame" .. i]
+        if frame and not frame.DeadText then
+            local deadText = frame:CreateFontString(frame:GetName().."DeadText", "OVERLAY", "GameFontNormalSmall")
+            
+
+            
+            deadText:SetParent(UIParent)
+			if Lorti.bigbuff then
+				deadText:SetPoint("CENTER", frame, "CENTER", 30, 14)
+				deadText:SetFont(Lorti.fontFamily, Lorti.StringSize, "OUTLINE")
+			else
+				deadText:SetPoint("CENTER", frame, "CENTER", 18, 8)
+				deadText:SetFont(Lorti.fontFamily, Lorti.StringSize-3, "OUTLINE")
+			end
+
+            deadText:Hide()
+            frame.DeadText = deadText
+        end
+    end
+end
+
+
+-- Update each party frame’s dead/ghost/offline text.
+local function UpdatePartyDeadTexts()
+    -- If the CompactPartyFrame exists, we assume that the standard PartyMemberFrame texts should be hidden.
+    if not PartyMemberFrame1 or not PartyMemberFrame1:IsShown() then
+        for i = 1, 4 do
+            local frame = _G["PartyMemberFrame" .. i]
+            if frame and frame.DeadText then
+                frame.DeadText:Hide()
+            end
+        end
+        return  -- exit since we don’t need to update the text for standard party frames
+    end
+	if IsInRaid() then
+        for i = 1, 4 do
+            local frame = _G["PartyMemberFrame" .. i]
+            if frame and frame.DeadText then
+                frame.DeadText:Hide()
+            end
+        end
+        return
+    end
+    -- Otherwise, update the text on standard PartyMemberFrames.
+    for i = 1, 4 do
+        local frame = _G["PartyMemberFrame" .. i]
+        if frame and frame.DeadText then
+            if (not frame.unit) or (not UnitExists(frame.unit)) then
+                frame.DeadText:Hide()
+            else
+                if not UnitIsConnected(frame.unit) then
+                    frame.DeadText:SetText(PLAYER_OFFLINE)  -- Blizzard’s localized offline text.
+                    frame.DeadText:Show()
+                elseif UnitIsDead(frame.unit) then
+                    frame.DeadText:SetText(DEAD)  -- Blizzard’s localized dead text.
+                    frame.DeadText:Show()
+                else
+                    frame.DeadText:Hide()
+                end
+            end
+        end
+    end
+end
+
+
+
+-- Create and update party dead texts on login/entering world
+local partyStatusFrame = CreateFrame("Frame")
+partyStatusFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+partyStatusFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
+partyStatusFrame:RegisterEvent("UNIT_HEALTH")
+partyStatusFrame:RegisterEvent("UNIT_CONNECTION")
+partyStatusFrame:SetScript("OnEvent", function(self, event, arg1)
+    -- If the event is unit-specific, check that it applies to a party unit
+    if (event == "UNIT_HEALTH" or event == "UNIT_CONNECTION") then
+        if arg1 and string.find(arg1, "party") then
+            UpdatePartyDeadTexts()
+        end
+    else
+        UpdatePartyDeadTexts()
+    end
+end)
+
+-- Call the creation function once on login
+CreatePartyDeadTexts()
+
+local function CheckPartyLayout()
+    -- If PartyMemberFrame1 is not shown (or doesn’t exist),
+    -- then hide the dead/ghost/offline texts on the party frames.
+    if not (PartyMemberFrame1 and PartyMemberFrame1:IsShown()) then
+        for i = 1, 4 do
+            local frame = _G["PartyMemberFrame" .. i]
+            if frame and frame.DeadText then
+                frame.DeadText:Hide()
+            end
+        end
+    end
+    -- Schedule the next check after 1 second.
+    C_Timer.After(1, CheckPartyLayout)
+end
+
+-- Start the repeating check.
+CheckPartyLayout()
+end
+
+-- Player dead/ghost check: shows or hides the custom texts on the player frame.
+function ns.playerDeadCheck()
+    if UnitIsDead("player") then
+        PlayerFrameDeadText:Show()
+        PlayerFrameGhostText:Hide()
+    elseif UnitIsGhost("player") then
+        PlayerFrameDeadText:Hide()
+        PlayerFrameGhostText:Show()
+    else
+        PlayerFrameDeadText:Hide()
+        PlayerFrameGhostText:Hide()
+    end
+
+    if UnitExists("player") and (UnitIsDead("player") or UnitIsGhost("player")) then
+		if PlayerFrame.healthbar then
+            PlayerFrame.healthbar:SetStatusBarColor(0.5, 0.5, 0.5)
+        end
+        for _, frame in ipairs({
+            PlayerFrameHealthBarText, PlayerFrameHealthBar.LeftText, PlayerFrameHealthBar.RightText,
+            PlayerFrameManaBar.LeftText, PlayerFrameManaBar.RightText, PlayerFrameTextureFrameManaBarText,
+            PlayerFrameManaBar
+        }) do
+            if frame then frame:SetAlpha(0) end
+        end
+    else
+        for _, frame in ipairs({
+            PlayerFrameHealthBarText, PlayerFrameHealthBar.LeftText, PlayerFrameHealthBar.RightText,
+            PlayerFrameManaBar.LeftText, PlayerFrameManaBar.RightText, PlayerFrameTextureFrameManaBarText,
+            PlayerFrameManaBar
+        }) do
+            if frame then frame:SetAlpha(1) end
+        end
+    end
+end
+
+-- Target dead/ghost check: updates target frame text visibility.
+function ns.targetDeadCheck()
+    if UnitIsDead("target") then
+		TargetFrameTextureFrameDeadText:SetPoint("CENTER", TargetFrameHealthBar, "CENTER", 0, 0)
+		TargetFrameTextureFrameDeadText:SetFont(Lorti.fontFamily, Lorti.StringSize-2, "OUTLINE")
+        TargetFrameGhostText:Hide()
+        TargetFrameOfflineText:Hide()
+    elseif UnitIsGhost("target") then
+        TargetFrameGhostText:Show()
+        TargetFrameOfflineText:Hide()
+    elseif UnitIsPlayer("target") and not UnitIsConnected("target") then
+        TargetFrameGhostText:Hide()
+        TargetFrameOfflineText:Show()
+    else
+        TargetFrameGhostText:Hide()
+        TargetFrameOfflineText:Hide()
+    end
+	
+    if UnitExists("target") and (UnitIsDead("target") or UnitIsGhost("target") or not UnitIsConnected("target")) then
+		if TargetFrame.healthbar then
+            TargetFrame.healthbar:SetStatusBarColor(0.5, 0.5, 0.5)
+        end
+        for _, frame in ipairs({
+            TargetFrameTextureFrame.HealthBarText, TargetFrameHealthBar.LeftText, TargetFrameHealthBar.RightText,
+            TargetFrameTextureFrame.ManaBarText, TargetFrameManaBar.LeftText, TargetFrameManaBar.RightText,
+            TargetFrameManaBar
+        }) do
+            if frame then frame:SetAlpha(0) end
+        end
+    else
+        for _, frame in ipairs({
+            TargetFrameTextureFrame.HealthBarText, TargetFrameHealthBar.LeftText, TargetFrameHealthBar.RightText,
+            TargetFrameTextureFrame.ManaBarText, TargetFrameManaBar.LeftText, TargetFrameManaBar.RightText,
+            TargetFrameManaBar
+        }) do
+            if frame then frame:SetAlpha(1) end
+        end
+    end
+end
+
+-- Focus dead/ghost check: updates focus frame text visibility.
+function ns.focusDeadCheck()
+    if UnitIsDead("focus") then
+		FocusFrameTextureFrameDeadText:SetPoint("CENTER", FocusFrameHealthBar, "CENTER", 0, 0)
+		FocusFrameTextureFrameDeadText:SetFont(Lorti.fontFamily, Lorti.StringSize-2, "OUTLINE")
+        FocusFrameGhostText:Hide()
+        FocusFrameOfflineText:Hide()
+    elseif UnitIsGhost("focus") then
+        FocusFrameGhostText:Show()
+        FocusFrameOfflineText:Hide()
+    elseif UnitIsPlayer("focus") and not UnitIsConnected("focus") then
+        FocusFrameGhostText:Hide()
+        FocusFrameOfflineText:Show()
+    else
+        FocusFrameGhostText:Hide()
+        FocusFrameOfflineText:Hide()
+    end
+	
+    if UnitExists("focus") and (UnitIsDead("focus") or UnitIsGhost("focus") or not UnitIsConnected("focus")) then
+		if FocusFrame.healthbar then
+            FocusFrame.healthbar:SetStatusBarColor(0.5, 0.5, 0.5)
+        end
+        for _, frame in ipairs({
+            FocusFrameTextureFrame.HealthBarText, FocusFrameHealthBar.LeftText, FocusFrameHealthBar.RightText,
+            FocusFrameManaBar.LeftText, FocusFrameManaBar.RightText, FocusFrameTextureFrameManaBarText,
+            FocusFrameManaBar
+        }) do
+            if frame then frame:SetAlpha(0) end
+        end
+    else
+        for _, frame in ipairs({
+            FocusFrameTextureFrame.HealthBarText, FocusFrameHealthBar.LeftText, FocusFrameHealthBar.RightText,
+            FocusFrameManaBar.LeftText, FocusFrameManaBar.RightText, FocusFrameTextureFrameManaBarText,
+            FocusFrameManaBar
+        }) do
+            if frame then frame:SetAlpha(1) end
+        end
+    end
+end
+
+-- Create a frame to listen to unit events.
+local deadCheckFrame = CreateFrame("Frame")
+deadCheckFrame:RegisterEvent("PLAYER_LOGIN")
+deadCheckFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+deadCheckFrame:RegisterEvent("PLAYER_TARGET_CHANGED")
+deadCheckFrame:RegisterEvent("PLAYER_FOCUS_CHANGED")
+deadCheckFrame:RegisterEvent("PLAYER_DEAD")
+deadCheckFrame:RegisterEvent("PLAYER_UNGHOST")
+deadCheckFrame:RegisterEvent("PLAYER_ALIVE")
+deadCheckFrame:SetScript("OnEvent", function(self, event, ...)
+    if event == "PLAYER_LOGIN" then
+        -- Create the dead/ghost/offline texts when the addon loads
+        ns.createDeadTextFrames()
+    elseif event == "PLAYER_ENTERING_WORLD" then
+        ns.playerDeadCheck()
+    elseif event == "PLAYER_TARGET_CHANGED" then
+        ns.targetDeadCheck()
+    elseif event == "PLAYER_FOCUS_CHANGED" then
+        ns.focusDeadCheck()
+    elseif event == "PLAYER_DEAD" then
+        ns.playerDeadCheck()
+        ns.focusDeadCheck()
+    elseif event == "PLAYER_UNGHOST" then
+        ns.playerDeadCheck()
+        ns.targetDeadCheck()
+        ns.focusDeadCheck()
+    elseif event == "PLAYER_ALIVE" then
+        ns.playerDeadCheck()
+        ns.targetDeadCheck()
+        ns.focusDeadCheck()
+    end
+end)
+
+function ApplyFonts()
+	local StringType = "OUTLINE"
+	
+	MinimapZoneText:SetFont(Lorti.fontFamily, Lorti.StringSize+2, StringType)
+
+	TargetFrameTextureFrameName:SetFont(Lorti.fontFamily, Lorti.StringSize, StringType)
+	PetName:SetFont(Lorti.fontFamily, Lorti.StringSize, StringType)
+	PlayerName:SetFont(Lorti.fontFamily, Lorti.StringSize, StringType)
+	FocusFrameTextureFrameName:SetFont(Lorti.fontFamily, Lorti.StringSize, StringType)
+	TargetFrameToTTextureFrameName:SetFont(Lorti.fontFamily, Lorti.StringSize-2, StringType)
+	FocusFrameToTTextureFrameName:SetFont(Lorti.fontFamily, Lorti.StringSize-2, StringType)
+
+	CastingBarFrame.Text:SetFont(Lorti.fontFamily, Lorti.StringSize, StringType)
+
+	PlayerFrameHealthBar.TextString:SetFont(Lorti.fontFamily, Lorti.NumSize, StringType)
+	PlayerFrameHealthBar.LeftText:SetFont(Lorti.fontFamily, Lorti.NumSize, StringType)
+	PlayerFrameHealthBar.RightText:SetFont(Lorti.fontFamily, Lorti.NumSize, StringType)
+	
+	PlayerFrameManaBar.TextString:SetFont(Lorti.fontFamily, Lorti.NumSize, StringType)
+	PlayerFrameManaBar.LeftText:SetFont(Lorti.fontFamily, Lorti.NumSize, StringType)
+	PlayerFrameManaBar.RightText:SetFont(Lorti.fontFamily, Lorti.NumSize, StringType)
+	
+	PetFrameHealthBar.TextString:SetFont(Lorti.fontFamily, Lorti.NumSize-2, StringType)
+	PetFrameHealthBar.LeftText:SetFont(Lorti.fontFamily, Lorti.NumSize-2, StringType)
+	PetFrameHealthBar.RightText:SetFont(Lorti.fontFamily, Lorti.NumSize-2, StringType)
+	
+	PetFrameManaBar.TextString:SetFont(Lorti.fontFamily, Lorti.NumSize-2, StringType)
+	PetFrameManaBar.LeftText:SetFont(Lorti.fontFamily, Lorti.NumSize-2, StringType)
+	PetFrameManaBar.RightText:SetFont(Lorti.fontFamily, Lorti.NumSize-2, StringType)
+		
+	TargetFrameHealthBar.TextString:SetFont(Lorti.fontFamily, Lorti.NumSize, StringType)
+	TargetFrameHealthBar.LeftText:SetFont(Lorti.fontFamily, Lorti.NumSize, StringType)
+	TargetFrameHealthBar.RightText:SetFont(Lorti.fontFamily, Lorti.NumSize, StringType)
+	
+	TargetFrameManaBar.TextString:SetFont(Lorti.fontFamily, Lorti.NumSize, StringType)
+	TargetFrameManaBar.LeftText:SetFont(Lorti.fontFamily, Lorti.NumSize, StringType)
+	TargetFrameManaBar.RightText:SetFont(Lorti.fontFamily, Lorti.NumSize, StringType)
+
+	FocusFrameHealthBar.TextString:SetFont(Lorti.fontFamily, Lorti.NumSize, StringType)
+	FocusFrameHealthBar.LeftText:SetFont(Lorti.fontFamily, Lorti.NumSize, StringType)
+	FocusFrameHealthBar.RightText:SetFont(Lorti.fontFamily, Lorti.NumSize, StringType)
+	
+	FocusFrameManaBar.TextString:SetFont(Lorti.fontFamily, Lorti.NumSize, StringType)
+	FocusFrameManaBar.LeftText:SetFont(Lorti.fontFamily, Lorti.NumSize, StringType)
+	FocusFrameManaBar.RightText:SetFont(Lorti.fontFamily, Lorti.NumSize, StringType)
+	
+end
+
+
+local function colour(statusbar, unit)
+    if not statusbar then
+        return
+    end
+    if unit then
+        if UnitIsConnected(unit) and unit == statusbar.unit then
+            if Lorti.ColoredHP and UnitIsEnemy("player", unit) then
+                -- Set red health bar for enemy units
+                statusbar:SetStatusBarColor(1, 0, 0)
+            else
+                if UnitIsPlayer(unit) and UnitClass(unit) then
+                    if (Lorti.classbars == true and UnitExists(unit) and not UnitIsDead(unit) and not UnitIsDeadOrGhost(unit) and not UnitIsGhost(unit) and UnitIsConnected(unit)) then
+                        local _, class = UnitClass(unit)
+                        local c = RAID_CLASS_COLORS[class]
+                        if c then
+                            statusbar:SetStatusBarColor(c.r, c.g, c.b)
+                        end
+                    else
+                        if (UnitIsFriend("player", unit) or UnitIsFriend("pet", unit)) then
+                            statusbar:SetStatusBarColor(0, 1, 0)
+                        else
+                            statusbar:SetStatusBarColor(1, 0, 0)
+                        end
+                    end
+                elseif (not UnitPlayerControlled(unit) and UnitIsTapDenied(unit)) or (UnitIsPlayer(unit) and not UnitIsConnected(unit)) or (UnitIsDeadOrGhost(unit)) then
+                    statusbar:SetStatusBarColor(.5, .5, .5)
+                else
+                    local red, green = UnitSelectionColor(unit)
+                    if red == 0 then
+                        statusbar:SetStatusBarColor(0, 1, 0)
+                    elseif green == 0 then
+                        statusbar:SetStatusBarColor(1, 0, 0)
+                    else
+                        statusbar:SetStatusBarColor(1, 1, 0)
+                    end
+                end
+            end
+        end
+    end
+end
+
+hooksecurefunc("UnitFrameHealthBar_Update", colour)
+hooksecurefunc("HealthBar_OnValueChanged", function(self)
+    if not self:IsForbidden() then
+        colour(self, self.unit)
+    end
+end)
+
+--Class Portraits
+local function ApplyClassPortraits(self)
+	if self.unit == "player" or self.unit == "pet" then
+		return
+	end
+	if self.portrait then
+		if UnitIsPlayer(self.unit) then			
+			local t = CLASS_ICON_TCOORDS[select(2,UnitClass(self.unit))]
+			if t then
+				self.portrait:SetTexture("Interface\\TargetingFrame\\UI-Classes-Circles")
+				self.portrait:SetTexCoord(unpack(t))
+			end
+		else
+			self.portrait:SetTexCoord(0,1,0,1)
+		end
+	end
+end
+
+--Player, Target, and Target Name Background Bar Textures
+--[[ local function ApplyFlatBars()
+											
+		FocusFrameNameBackground:SetTexture("Interface\\AddOns\\Lorti-UI-Classic\\textures\\flat")
+		TargetFrameNameBackground:SetTexture("Interface\\AddOns\\Lorti-UI-Classic\\textures\\flat")
+		PlayerFrame.healthbar:SetStatusBarTexture("Interface\\AddOns\\Lorti-UI-Classic\\textures\\flat");
+		TargetFrame.healthbar:SetStatusBarTexture("Interface\\AddOns\\Lorti-UI-Classic\\textures\\flat");
+		FocusFrame.healthbar:SetStatusBarTexture("Interface\\AddOns\\Lorti-UI-Classic\\textures\\flat");
+		--Party Frames Health Bar Textures
+
+		for i=1, 4 do
+			_G["PartyMemberFrame"..i.."HealthBar"]:SetStatusBarTexture("Interface\\AddOns\\Lorti-UI-Classic\\textures\\flat")
+		end
+
+		--Mirror Timers Textures (Breath meter, etc)
+
+		MirrorTimer1StatusBar:SetStatusBarTexture("Interface\\AddOns\\Lorti-UI-Classic\\textures\\flat")
+		MirrorTimer2StatusBar:SetStatusBarTexture("Interface\\AddOns\\Lorti-UI-Classic\\textures\\flat")
+		MirrorTimer3StatusBar:SetStatusBarTexture("Interface\\AddOns\\Lorti-UI-Classic\\textures\\flat")
+
+		--Castbar Bar Texture
+
+		CastingBarFrame:SetStatusBarTexture("Interface\\AddOns\\Lorti-UI-Classic\\textures\\flat")
+
+		--Pet Frame Bar Textures
+
+		PetFrameHealthBar:SetStatusBarTexture("Interface\\AddOns\\Lorti-UI-Classic\\textures\\flat");
+		TargetFrameToTHealthBar:SetStatusBarTexture("Interface\\AddOns\\Lorti-UI-Classic\\textures\\flat");
+		FocusFrameToTHealthBar:SetStatusBarTexture("Interface\\AddOns\\Lorti-UI-Classic\\textures\\flat");
+
+		--Tooltip Health Bar Texture
+
+		GameTooltipStatusBar:SetStatusBarTexture("Interface\\AddOns\\Lorti-UI-Classic\\textures\\flat")
+
+		--XP and Rep Bar Textures
+
+		ReputationWatchBar.StatusBar:SetStatusBarTexture("Interface\\AddOns\\Lorti-UI-Classic\\textures\\flat");
+		MainMenuExpBar:SetStatusBarTexture("Interface\\AddOns\\Lorti-UI-Classic\\textures\\flat");
+
+		--Mana Bar Texture
+
+		function LortiUIManaTexture (manaBar)
+			local powerType, powerToken, altR, altG, altB = UnitPowerType(manaBar.unit);
+			local info = PowerBarColor[powerToken];
+			if ( info ) then
+				if ( not manaBar.lockColor ) then
+						manaBar:SetStatusBarTexture("Interface\\AddOns\\Lorti-UI-Classic\\textures\\flat");
+				end
+			end
+		end
+		hooksecurefunc("UnitFrameManaBar_UpdateType", LortiUIManaTexture)
+end
+]]
+
+local function ScaleFrames()
+	if Lorti.bigbuff == true then
+		PlayerFrame:SetScale(1.3) 
+		TargetFrame:SetScale(1.3) 
+		FocusFrame:SetScale(1.3)
+		for i=1,4 do _G["PartyMemberFrame"..i]:SetScale(1.6) end
+		ComboFrame:SetScale(1.3)
+	end
+end
+
+local function OnEvent(self, event)
+	for addon in pairs(addonlist) do
+		if IsAddOnLoaded(addon) then
+			for _, v in pairs(events) do self:UnregisterEvent(v) end
+			self:SetScript("OnEvent", nil)
+			return
+		end
+	end
+	
+	if (event == "ADDON_LOADED") then
+		enable()
+		ScaleFrames()
+		ApplyFonts()
+		
+		if Lorti.thickness then
+            ApplyThickness()
+        else
+            hooksecurefunc("TargetFrame_CheckClassification", Classify)
+        end
+		
+
+		if Lorti.ClassPortraits == true then
+			hooksecurefunc("UnitFramePortrait_Update", ApplyClassPortraits)
+		end
+		if Lorti.flatbars == true then
+			ApplyFlatBars()
+		end
+	end
+
+	if (event == "PLAYER_ENTERING_WORLD") then
+		ApplyFonts()
+		-- if _G["CompactRaidFrame" .. i] then ???
+		-- if CompactRaidGroup1 and not groupcolored == true then
+		--	ColorRaid()
+		-- end
+
+		-- if CompactRaidFrame1 and not singlecolored == true then
+		--	ColorRaid()
+		-- end
+	end
+
+	
+end
+
+local e = CreateFrame("Frame")
+e:RegisterEvent("PLAYER_LOGIN")
+e:RegisterEvent("PLAYER_ENTERING_WORLD")
+e:RegisterEvent("ADDON_LOADED")
+e:RegisterEvent("GROUP_ROSTER_UPDATE")
+for _, v in pairs(events) do e:RegisterEvent(v) end
+e:SetScript("OnEvent", OnEvent)
+
+--Raid Frames
+local f = CreateFrame("Frame")
+f:SetScript("OnEvent",function(self, event, ...)
+
+local n, w, h = "CompactUnitFrameProfilesGeneralOptionsFrame"
+h, w = _G[n .. "HeightSlider"], _G[n .. "WidthSlider"]
+h:SetMinMaxValues(1, 200)
+w:SetMinMaxValues(1, 200)
+
+local function RaidFrameUpdate()
+	local i, bar = 1
+	repeat
+    	bar = _G["CompactRaidFrame" .. i .. "HealthBar"]
+		bar2 = _G["CompactPartyFrameMember" .. i .. "HealthBar"]
+		rbar = _G["CompactRaidFrame" .. i .. "PowerBar"]
+		Divider = _G["CompactRaidFrame" .. i .. "HorizDivider"]
+		vleftseparator = _G["CompactRaidFrame" .. i .. "VertLeftBorder"]
+		vrightseparator = _G["CompactRaidFrame" .. i .. "VertRightBorder"]
+		htopseparator = _G["CompactRaidFrame" .. i .. "HorizTopBorder"]
+		hbotseparator = _G["CompactRaidFrame" .. i .. "HorizBottomBorder"]
+		name = _G["CompactRaidFrame" .. i .. "Name"]
+		name2 = _G["CompactPartyFrameMember" .. i .. "Name"]
+    if bar2 then
+		name2:SetFont(Lorti.fontFamily, Lorti.StringSize, "OUTLINE")
+	end
+	if bar then
+		bar:SetStatusBarTexture("Interface\\AddOns\\Lorti-UI-Classic\\textures\\raid\\Raid-Bar-Hp-Fill")
+		rbar:SetStatusBarTexture("Interface\\AddOns\\Lorti-UI-Classic\\textures\\raid\\Raid-Bar-Resource-Fill")
+	
+		vleftseparator:SetTexture("Interface\\AddOns\\Lorti-UI-Classic\\textures\\raid\\Raid-VSeparator")
+		vrightseparator:SetTexture("Interface\\AddOns\\Lorti-UI-Classic\\textures\\raid\\Raid-VSeparator")
+		htopseparator:SetTexture("Interface\\AddOns\\Lorti-UI-Classic\\textures\\raid\\Raid-HSeparator")
+		hbotseparator:SetTexture("Interface\\AddOns\\Lorti-UI-Classic\\textures\\raid\\Raid-HSeparator")
+		Divider:SetVertexColor(.3, .3, .3)
+		name:SetFont(Lorti.fontFamily, Lorti.StringSize, "OUTLINE")
+		
+		name:SetPoint('TOPLEFT', bar, 2, -2)
+    end
+    i = i + 1
+  until not bar
+end
+
+	if CompactRaidFrameContainer_AddUnitFrame then
+    self:UnregisterAllEvents()
+		hooksecurefunc("CompactRaidFrameContainer_AddUnitFrame", RaidFrameUpdate)
+		CompactRaidFrameContainerBorderFrameBorderTopLeft:SetTexture("Interface\\AddOns\\Lorti-UI-Classic\\textures\\raid\\RaidBorder-UpperLeft")
+		CompactRaidFrameContainerBorderFrameBorderTop:SetTexture("Interface\\AddOns\\Lorti-UI-Classic\\textures\\raid\\RaidBorder-UpperMiddle")
+		CompactRaidFrameContainerBorderFrameBorderTopRight:SetTexture("Interface\\AddOns\\Lorti-UI-Classic\\textures\\raid\\RaidBorder-UpperRight")
+		CompactRaidFrameContainerBorderFrameBorderLeft:SetTexture("Interface\\AddOns\\Lorti-UI-Classic\\textures\\raid\\RaidBorder-Left")
+		CompactRaidFrameContainerBorderFrameBorderRight:SetTexture("Interface\\AddOns\\Lorti-UI-Classic\\textures\\raid\\RaidBorder-Right")
+		CompactRaidFrameContainerBorderFrameBorderBottomLeft:SetTexture("Interface\\AddOns\\Lorti-UI-Classic\\textures\\raid\\RaidBorder-BottomLeft")
+		CompactRaidFrameContainerBorderFrameBorderBottom:SetTexture("Interface\\AddOns\\Lorti-UI-Classic\\textures\\raid\\RaidBorder-BottomMiddle")
+		CompactRaidFrameContainerBorderFrameBorderBottomRight:SetTexture("Interface\\AddOns\\Lorti-UI-Classic\\textures\\raid\\RaidBorder-BottomRight")
+    end
+
+-- Party frames
+function LortiPartyFrames()
+	local useCompact = GetCVarBool("useCompactPartyFrames");
+	if IsInGroup(player) and (not IsInRaid(player)) and (not useCompact) then
+		for i = 1, 4 do
+			
+			--	_G["PartyMemberFrame"..i.."HealthBar"]:SetStatusBarTexture("Interface\\Addons\\whoaThickFrames_BCC\\media\\statusbar\\"..cfg.SBTextureName);
+			--	_G["PartyMemberFrame"..i.."HealthBar"]:SetStatusBarTexture("Interface\\Addons\\whoaThickFrames_BCC\\media\\statusbar\\"..cfg.SBTextureName);
+			
+			-- _G["PartyMemberFrame"..i.."Name"]:SetSize(75,10);
+			_G["PartyMemberFrame"..i.."Texture"]:SetTexture("Interface\\Addons\\whoaThickFrames_BCC\\media\\dark\\UI-PartyFrame");
+			_G["PartyMemberFrame"..i.."Flash"]:SetTexture("Interface\\Addons\\whoaThickFrames_BCC\\media\\UI-PARTYFRAME-FLASH");
+			_G["PartyMemberFrame"..i.."HealthBar"]:ClearAllPoints();
+			_G["PartyMemberFrame"..i.."HealthBar"]:SetPoint("TOPLEFT", 45, -13);
+			_G["PartyMemberFrame"..i.."HealthBar"]:SetHeight(12);
+			_G["PartyMemberFrame"..i.."ManaBar"]:ClearAllPoints();
+			_G["PartyMemberFrame"..i.."ManaBar"]:SetPoint("TOPLEFT", 45, -26);
+			_G["PartyMemberFrame"..i.."ManaBar"]:SetHeight(5);
+			-- _G["PartyMemberFrame"..i.."HealthBarTextLeft"]:ClearAllPoints();
+			-- _G["PartyMemberFrame"..i.."HealthBarTextLeft"]:SetPoint("LEFT", _G["PartyMemberFrame"..i.."HealthBar"], "LEFT", 0, 0);
+			-- _G["PartyMemberFrame"..i.."HealthBarTextRight"]:ClearAllPoints();
+			-- _G["PartyMemberFrame"..i.."HealthBarTextRight"]:SetPoint("RIGHT", _G["PartyMemberFrame"..i.."HealthBar"], "RIGHT", 0, 0);
+			-- _G["PartyMemberFrame"..i.."ManaBarTextLeft"]:ClearAllPoints();
+			-- _G["PartyMemberFrame"..i.."ManaBarTextLeft"]:SetPoint("LEFT", _G["PartyMemberFrame"..i.."ManaBar"], "LEFT", 0, 0);
+			-- _G["PartyMemberFrame"..i.."ManaBarTextRight"]:ClearAllPoints();
+			-- _G["PartyMemberFrame"..i.."ManaBarTextRight"]:SetPoint("RIGHT", _G["PartyMemberFrame"..i.."ManaBar"], "RIGHT", 0, 0);
+			-- _G["PartyMemberFrame"..i.."HealthBarText"]:ClearAllPoints();
+			-- _G["PartyMemberFrame"..i.."HealthBarText"]:SetPoint("CENTER", _G["PartyMemberFrame"..i.."HealthBar"], "CENTER", 0, 0);
+			-- _G["PartyMemberFrame"..i.."ManaBarText"]:ClearAllPoints();
+			-- _G["PartyMemberFrame"..i.."ManaBarText"]:SetPoint("CENTER", _G["PartyMemberFrame"..i.."ManaBar"], "CENTER", 0, 0);
+		end
+	end
+end
+hooksecurefunc("UnitFrame_Update", LortiPartyFrames)
+hooksecurefunc("PartyMemberFrame_ToPlayerArt", LortiPartyFrames)
+
+local function RepositionPartyFrames()
+    -- Adjust these base offsets as needed.
+    local baseX = 300  -- distance from the left edge
+    local baseY = 100  -- distance from the bottom edge
+    local spacing = 5  -- space between frames
+
+    for i = 1, 4 do
+        local frame = _G["PartyMemberFrame" .. i]
+        if frame then
+            frame:ClearAllPoints()
+            -- Anchor each party frame to UIParent.
+            -- Here, the first party frame is positioned at (baseX, baseY),
+            -- and subsequent frames are moved upward by the frame's height plus a little spacing.
+            local height = frame:GetHeight() -- fallback height if GetHeight() is nil
+			if Lorti.bigbuff then
+				frame:SetPoint("CENTER", CompactRaidFrameManager, "CENTER", 140, -60 + (height + spacing) * (i - 1))
+			else
+				frame:SetPoint("CENTER", CompactRaidFrameManager, "CENTER", 170, -20 + (height + spacing) * (i - 1))
+			end
+        end
+    end
+end
+local f = CreateFrame("Frame")
+f:RegisterEvent("PLAYER_ENTERING_WORLD")
+f:SetScript("OnEvent", function(self, event)
+    RepositionPartyFrames()
+end)
+
+--Party Buffs and Debuff
+if Lorti.partybuff then
+
+-- Update party debuffs (for party frames)
+function RefreshPartyDebuffs(parent, unit, maxDebuffs, filter, showAll)
+    -- Set a fixed icon size for party debuffs (adjust as needed)
+    local iconSize = 16
+    local index = 1      -- index for the UnitDebuff call
+    local frameIndex = 1 -- index for the debuff frames on the parent
+
+    while true do
+        local name, icon, count, debuffType, duration, expirationTime = UnitDebuff(unit, index, filter)
+        if not name then
+            break  -- No more debuffs to process
+        end
+
+        local debuff = parent["Debuff"..frameIndex]
+        if not debuff then
+            debuff = CreateFrame("Frame", parent:GetName().."Debuff"..frameIndex, parent, "PartyDebuffFrameTemplate")
+            parent["Debuff"..frameIndex] = debuff
+
+            if frameIndex == 1 then
+                debuff:SetPoint("LEFT", parent, "RIGHT", -7, 5)
+            else
+                debuff:SetPoint("LEFT", parent["Debuff"..(frameIndex - 1)], "RIGHT", 2, 0)
+            end
+
+            debuff:EnableMouse(false)
+
+            if not debuff.cooldown then
+                debuff.cooldown = CreateFrame("Cooldown", debuff:GetName().."Cooldown", debuff, "CooldownFrameTemplate")
+                debuff.cooldown:SetAllPoints(debuff)
+            end
+            -- Optionally, you may also set a fixed size for the debuff icon here:
+            debuff:SetSize(iconSize, iconSize)
+        end
+
+        local iconTexture = _G[debuff:GetName().."Icon"]
+        local countText   = _G[debuff:GetName().."Count"]
+        if iconTexture then
+            iconTexture:SetTexture(icon)
+        end
+        if countText then
+            countText:SetText((count and count > 1) and count or "")
+        end
+        debuff:Show()
+
+        if debuff.cooldown then
+            if duration and duration > 0 then
+                debuff.cooldown:Show()
+                CooldownFrame_Set(debuff.cooldown, expirationTime - duration, duration, true)
+            else
+                debuff.cooldown:Hide()
+            end
+        end
+
+        frameIndex = frameIndex + 1
+        index = index + 1
+    end
+
+    -- Hide any extra debuff frames that might have been shown previously.
+    for i = frameIndex, maxDebuffs do
+        local debuff = parent["Debuff"..i]
+        if debuff then
+            debuff:Hide()
+        end
+    end
+end
+
+
+	for i = 1, 4 do
+		local f = _G["PartyMemberFrame" .. i]
+		f:UnregisterEvent("UNIT_AURA")
+		local g = CreateFrame("Frame")
+		g:RegisterEvent("UNIT_AURA")
+		g:SetScript(
+			"OnEvent",
+			function(self, event, a1)
+				if a1 == f.unit then
+					RefreshDebuffs(f, a1, 20, nil, 1)
+				else
+					if a1 == f.unit .. "pet" then
+						PartyMemberFrame_RefreshPetDebuffs(f)
+					end
+				end
+			end
+		)
+		local b = _G[f:GetName() .. "Debuff1"]
+		b:ClearAllPoints()
+		b:SetPoint("LEFT", f, "RIGHT", -7, 5)
+		for j = 5, 20 do
+			local l = f:GetName() .. "Debuff"
+			local n = l .. j
+			local c = CreateFrame("Frame", n, f, "PartyDebuffFrameTemplate")
+			c:SetPoint("LEFT", _G[l .. (j - 1)], "RIGHT")
+		end
+	
+		for i = 1, 4 do
+			local f = _G["PartyMemberFrame" .. i]
+			f:UnregisterEvent("UNIT_AURA")
+			local g = CreateFrame("Frame")
+			g:RegisterEvent("UNIT_AURA")
+			g:SetScript(
+				"OnEvent",
+				function(self, event, a1)
+					if a1 == f.unit then
+						RefreshBuffs(f, a1, 20, nil, 1)
+					end
+				end
+			)
+			for j = 1, 20 do
+				local l = f:GetName() .. "Buff"
+				local n = l .. j
+				local c = CreateFrame("Frame", n, f, "TargetBuffFrameTemplate")
+				c:EnableMouse(false)
+				if j == 1 then
+					c:SetPoint("TOPLEFT", 48, -32)
+				else
+					c:SetPoint("LEFT", _G[l .. (j - 1)], "RIGHT", 1, 0)
+				end
+			end
+		end
+	end
+end
+
+if Lorti.raidbuff then
+-- This function updates the buffs for a given unit.
+function RefreshBuffs(parent, unit, maxBuffs, filter, showAll)
+    -- Assume that the buff container's parent is the raid frame.
+    local raidFrame = parent:GetParent()
+
+    -- Define native dimensions (adjust these if needed)
+    local NATIVE_UNIT_FRAME_HEIGHT = 36
+    local NATIVE_UNIT_FRAME_WIDTH = 72
+
+    -- Get the current size of the raid frame.
+    local raidWidth, raidHeight = raidFrame:GetSize()
+
+    -- Compute the scale factor (use the smaller ratio to keep proportions).
+    local componentScale = math.min(raidHeight / NATIVE_UNIT_FRAME_HEIGHT, raidWidth / NATIVE_UNIT_FRAME_WIDTH)
+
+    -- Define a default buff size (Blizzard uses 11 in its default setup).
+    local defaultBuffSize = 11
+    local iconSize = math.floor(defaultBuffSize * componentScale)
+
+    for i = 1, maxBuffs do
+        local buff = parent["Buff"..i]
+        if not buff then
+            buff = CreateFrame("Frame", parent:GetName().."Buff"..i, parent, "TargetBuffFrameTemplate")
+            buff:SetSize(iconSize, iconSize)
+            parent["Buff"..i] = buff
+
+            -- Position the buffs. Here we place the first buff at the top-right,
+            -- and subsequent buffs to its left (adjust as needed).
+            if i == 1 then
+                buff:SetPoint("TOPRIGHT", parent, "TOPRIGHT", 0, 0)
+            else
+                buff:SetPoint("RIGHT", parent["Buff"..(i-1)], "LEFT", -2, 0)
+            end
+
+            -- Create a cooldown frame if one doesn't exist.
+            if not buff.cooldown then
+                buff.cooldown = CreateFrame("Cooldown", buff:GetName().."Cooldown", buff, "CooldownFrameTemplate")
+                buff.cooldown:SetAllPoints(buff)
+            end
+        else
+            -- Update the buff size in case the raid frame has changed.
+            buff:SetSize(iconSize, iconSize)
+        end
+
+        -- Retrieve aura information.
+        local name, icon, count, debuffType, duration, expirationTime = UnitAura(unit, i, "HELPFUL")
+        if name then
+            local iconTexture = _G[buff:GetName().."Icon"]
+            local countText   = _G[buff:GetName().."Count"]
+
+            if iconTexture then
+                iconTexture:SetTexture(icon)
+            end
+            if countText then
+                countText:SetText((count and count > 1) and count or "")
+            end
+
+            buff:Show()
+
+            -- Set up the cooldown swipe if the aura has a duration.
+            if buff.cooldown then
+                if duration and duration > 0 then
+                    buff.cooldown:Show()
+                    CooldownFrame_Set(buff.cooldown, expirationTime - duration, duration, true)
+                else
+                    buff.cooldown:Hide()
+                end
+            end
+			buff:EnableMouse(false)
+        else
+            buff:Hide()
+        end
+    end
+end
+
+
+-- Update Raid Buffs (this runs on each UNIT_AURA event for raid members)
+local raidBuffUpdater = CreateFrame("Frame")
+raidBuffUpdater:RegisterEvent("UNIT_AURA")
+raidBuffUpdater:RegisterEvent("GROUP_ROSTER_UPDATE")  -- optionally update on roster changes
+raidBuffUpdater:SetScript("OnEvent", function(self, event, unit)
+  
+  
+  for i = 1, MAX_RAID_MEMBERS do
+    local raidFrame = _G["CompactRaidFrame" .. i]
+    if raidFrame and raidFrame.unit then
+      if not raidFrame.BuffFrame then
+        local buffFrame = CreateFrame("Frame", raidFrame:GetName().."BuffFrame", raidFrame)
+        buffFrame:SetSize(100, 20)  -- adjust as needed
+        buffFrame:SetPoint("BOTTOMRIGHT", raidFrame, "TOPRIGHT", -2, -40)
+        buffFrame:SetFrameLevel(raidFrame:GetFrameLevel() + 20)
+        raidFrame.BuffFrame = buffFrame
+      end
+
+      -- This call will update up to 20 buffs (with no extra filter, so all helpful buffs)
+      RefreshBuffs(raidFrame.BuffFrame, raidFrame.unit, 20, nil, 1)
+    end
+  end
+end)
+end
+	
+end)
+f:RegisterEvent("PLAYER_LOGIN")
+f:RegisterEvent("ADDON_LOADED")
+
+
+    
