@@ -1955,185 +1955,235 @@ f:SetScript("OnEvent", function(self, event)
 end)
 
 if Lorti.energytick then
-if Lorti.energytick then
-local events = {
-    "PLAYER_LOGIN",
-    "PLAYER_REGEN_DISABLED",
-    "PLAYER_REGEN_ENABLED",
-    "UPDATE_SHAPESHIFT_FORM",
-    "COMBAT_LOG_EVENT_UNFILTERED",
-    "UNIT_POWER_UPDATE",
-    "UNIT_SPELLCAST_STOP",
-    "UNIT_SPELLCAST_SUCCEEDED"
-}
+    local events = {
+        "PLAYER_LOGIN",
+        "PLAYER_REGEN_DISABLED",
+        "PLAYER_REGEN_ENABLED",
+        "UPDATE_SHAPESHIFT_FORM",
+        "COMBAT_LOG_EVENT_UNFILTERED",
+        "UNIT_POWER_UPDATE",
+        "UNIT_SPELLCAST_STOP",
+        "UNIT_SPELLCAST_SUCCEEDED"
+    }
 
-local last_energy_tick = GetTime()
-local last_mana_tick = GetTime()
-local last_energy_value = 0
-local last_mana_value = 0
-local externalManaGainTimestamp = 0
-local TimeSinceLastUpdate = 0
-local ONUPDATE_INTERVAL = 0.01
-local manaRegenStartTime = 0
+    local last_energy_tick = GetTime()
+    local last_mana_tick = GetTime()
+    local last_energy_value = 0
+    local last_mana_value = 0
+    local externalManaGainTimestamp = 0
+    local TimeSinceLastUpdate = 0
+    local ONUPDATE_INTERVAL = 0.01
+    local manaRegenStartTime = 0
 
--- Function to set the tick marker position
-local function SetTickValue(self, value, resourceType)
-    local x = self:GetWidth()
-    local position = ((x * value) / 2.02)
-  
-    if position < x then
-        if resourceType == "energy" and self.energy then
-            self.energy.spark:Show()
-            self.energy.spark:SetPoint("CENTER", self, "LEFT", position, 0)
-        elseif resourceType == "mana" and self.mana then
-            self.mana.spark:Show()
-            self.mana.spark:SetPoint("CENTER", self, "LEFT", position, 0)
+    -- Function to set the tick marker position
+    local function SetTickValue(self, value, resourceType)
+        local x = self:GetWidth()
+        local position = ((x * value) / 2.02)
+      local _, class = UnitClass("player")
+
+        if position < x then
+            if resourceType == "energy" and self.energy then
+                -- Show the energy spark
+                self.energy.spark:Show()
+                self.energy.spark:SetPoint("CENTER", self, "LEFT", position, 0)
+                -- Hide the mana spark (if it's visible)
+                if self.mana then
+					if class == "MAGE" or class == "PRIEST" or class == "WARLOCK" or 
+					class == "HUNTER" or class == "SHAMAN" or class == "PALADIN" or 
+					class == "DRUID" then
+						self.mana.spark:SetAlpha(1) -- Dim the mana spark
+					elseif class == "ROGUE" then
+						self.mana.spark:SetAlpha(0)
+					end
+                end
+            elseif resourceType == "mana" and self.mana then
+                -- Show the mana spark
+                self.mana.spark:Show()
+                self.mana.spark:SetPoint("CENTER", self, "LEFT", position, 0)
+                -- Hide the energy spark (if it's visible)
+                if self.energy then
+					if class == "MAGE" or class == "PRIEST" or class == "WARLOCK" or 
+					class == "HUNTER" or class == "SHAMAN" or class == "PALADIN" or 
+					class == "DRUID" then
+						self.energy.spark:SetAlpha(0) -- Dim the energy spark
+					elseif class == "ROGUE" or class == "DRUID" then
+						self.energy.spark:SetAlpha(1)
+					end
+                end
+            end
         end
     end
-end
 
--- OnUpdate function
-local function OnUpdate(self, elapsed)
-    local time = GetTime()
-    local vEnergy = time - last_energy_tick
-    local vMana = time - last_mana_tick
-    TimeSinceLastUpdate = TimeSinceLastUpdate + elapsed
+    -- OnUpdate function
+    local function OnUpdate(self, elapsed)
+        local time = GetTime()
+        local vEnergy = time - last_energy_tick
+        local vMana = time - last_mana_tick
+        TimeSinceLastUpdate = TimeSinceLastUpdate + elapsed
 
-    if TimeSinceLastUpdate >= ONUPDATE_INTERVAL then
-        TimeSinceLastUpdate = 0
+        if TimeSinceLastUpdate >= ONUPDATE_INTERVAL then
+            TimeSinceLastUpdate = 0
 
-        -- Energy Tick
-        if time >= last_energy_tick + 2.02 then
+            -- Energy Tick
+            if time >= last_energy_tick + 2.02 then
+                last_energy_tick = time
+            end
+            SetTickValue(self:GetParent(), vEnergy, "energy")
+
+            -- Mana Tick
+            if time >= last_mana_tick + 2.02 and time >= manaRegenStartTime + 5 then
+                last_mana_tick = time
+            end
+            SetTickValue(self:GetParent(), vMana, "mana")
+        end
+    end
+
+    -- Function to update Energy
+    local function UpdateEnergy()
+        local energy = UnitPower("player", 3)
+        local maxEnergy = UnitPowerMax("player", 3)
+        local time = GetTime()
+
+        if time - externalManaGainTimestamp < 0.02 then
+            externalManaGainTimestamp = 0
+            return
+        end
+
+        if ((energy == last_energy_value + 20 or energy == last_energy_value + 21 or 
+             energy == last_energy_value + 40 or energy == last_energy_value + 41) and energy ~= maxEnergy) then
             last_energy_tick = time
         end
-        SetTickValue(self:GetParent(), vEnergy, "energy")
 
-        -- Mana Tick
-        if time >= last_mana_tick + 2.02 and time >= manaRegenStartTime + 5 then
+        last_energy_value = energy
+    end
+
+    -- Function to update Mana
+    local function UpdateMana()
+        local mana = UnitPower("player", 0)
+        local maxMana = UnitPowerMax("player", 0)
+        local time = GetTime()
+
+        if time - externalManaGainTimestamp < 0.02 then
+            externalManaGainTimestamp = 0
+            return
+        end
+
+        if mana > last_mana_value then
             last_mana_tick = time
         end
-        SetTickValue(self:GetParent(), vMana, "mana")
-    end
-end
 
--- Function to update Energy
-local function UpdateEnergy()
-    local energy = UnitPower("player", 3)
-    local maxEnergy = UnitPowerMax("player", 3)
-    local time = GetTime()
-
-    if time - externalManaGainTimestamp < 0.02 then
-        externalManaGainTimestamp = 0
-        return
+        last_mana_value = mana
     end
 
-    if ((energy == last_energy_value + 20 or energy == last_energy_value + 21 or 
-         energy == last_energy_value + 40 or energy == last_energy_value + 41) and energy ~= maxEnergy) then
-        last_energy_tick = time
-    end
-
-    last_energy_value = energy
-end
-
--- Function to update Mana
-local function UpdateMana()
-    local mana = UnitPower("player", 0)
-    local maxMana = UnitPowerMax("player", 0)
-    local time = GetTime()
-
-    if time - externalManaGainTimestamp < 0.02 then
-        externalManaGainTimestamp = 0
-        return
-    end
-
-    if mana > last_mana_value then
-        last_mana_tick = time
-    end
-
-    last_mana_value = mana
-end
-
--- Function to add Energy & Mana Tick Indicators
-local function AddTicks()
-    -- Energy
-    if not PlayerFrameManaBar.energy then
-        PlayerFrameManaBar.energy = CreateFrame("Statusbar", "PlayerFrameManaBar_energy", PlayerFrameManaBar)
-        PlayerFrameManaBar.energy.spark = PlayerFrameManaBar.energy:CreateTexture(nil, "OVERLAY")
-        PlayerFrameManaBar.energy.spark:SetTexture[[Interface\CastingBar\UI-CastingBar-Spark]]
-        PlayerFrameManaBar.energy.spark:SetSize(32, 32)
-        PlayerFrameManaBar.energy.spark:SetPoint("CENTER", PlayerFrameManaBar, 0, 0)
-        PlayerFrameManaBar.energy.spark:SetBlendMode("ADD")
-        PlayerFrameManaBar.energy.spark:SetAlpha(.4)
-    end
-
-    -- Mana
-    if not PlayerFrameManaBar.mana then
-        PlayerFrameManaBar.mana = CreateFrame("Statusbar", "PlayerFrameManaBar_mana", PlayerFrameManaBar)
-        PlayerFrameManaBar.mana.spark = PlayerFrameManaBar.mana:CreateTexture(nil, "OVERLAY")
-        PlayerFrameManaBar.mana.spark:SetTexture[[Interface\CastingBar\UI-CastingBar-Spark]]
-        PlayerFrameManaBar.mana.spark:SetSize(32, 32)
-        PlayerFrameManaBar.mana.spark:SetPoint("CENTER", PlayerFrameManaBar, 0, 0)
-        PlayerFrameManaBar.mana.spark:SetBlendMode("ADD")
-        PlayerFrameManaBar.mana.spark:SetAlpha(.4)
-    end
-
-    PlayerFrameManaBar.energy:RegisterUnitEvent("UNIT_POWER_UPDATE", "player")
-    PlayerFrameManaBar.mana:RegisterUnitEvent("UNIT_POWER_UPDATE", "player")
-
-    if not PlayerFrameManaBar.energy:GetScript("OnUpdate") then
-        PlayerFrameManaBar.energy:SetScript("OnUpdate", OnUpdate)
-    end
-end
-
-local function RealTick()
-    local _, eventType, _, _, _, sourceFlags, _, _, _, destFlags, _, spellID = CombatLogGetCurrentEventInfo()
-    if not (eventType == "SPELL_PERIODIC_ENERGIZE" or eventType == "SPELL_ENERGIZE") then return end
-
-    local isDestPlayer = CombatLog_Object_IsA(destFlags, COMBATLOG_FILTER_ME)
-    if isDestPlayer then
-        externalManaGainTimestamp = GetTime()
-    end
-end
-
-local function OnEvent(self, event, ...)
-    local _, class = UnitClass("player")
-    if not (Lorti.energytick and (class == "ROGUE" or class == "DRUID" or class == "MAGE" or class == "PRIEST" or class == "WARLOCK" or class == "HUNTER" or class == "SHAMAN" or class == "PALADIN")) then
-        self:UnregisterAllEvents()
-        self:SetScript("OnEvent", nil)
-        return
-    end
-
-    if event == "PLAYER_LOGIN" then
-        AddTicks()
-        self:UnregisterEvent("PLAYER_LOGIN")
-    elseif event == "PLAYER_REGEN_DISABLED" then
-        if PlayerFrameManaBar.energy then PlayerFrameManaBar.energy.spark:SetAlpha(1) end
-        if PlayerFrameManaBar.mana then PlayerFrameManaBar.mana.spark:SetAlpha(1) end
-    elseif event == "PLAYER_REGEN_ENABLED" then
-        if PlayerFrameManaBar.energy then PlayerFrameManaBar.energy.spark:SetAlpha(1) end
-        if PlayerFrameManaBar.mana then PlayerFrameManaBar.mana.spark:SetAlpha(1) end
-    elseif event == "UPDATE_SHAPESHIFT_FORM" and class == "DRUID" then
-        if PlayerFrameManaBar.energy and UnitPowerType("player") ~= 3 then
-            PlayerFrameManaBar.energy.spark:SetAlpha(0)
-        elseif PlayerFrameManaBar.energy then
-            PlayerFrameManaBar.energy.spark:SetAlpha(1)
+    -- Function to add Energy & Mana Tick Indicators
+    local function AddTicks()
+        -- Energy
+        if not PlayerFrameManaBar.energy then
+            PlayerFrameManaBar.energy = CreateFrame("Statusbar", "PlayerFrameManaBar_energy", PlayerFrameManaBar)
+            PlayerFrameManaBar.energy.spark = PlayerFrameManaBar.energy:CreateTexture(nil, "OVERLAY")
+            PlayerFrameManaBar.energy.spark:SetTexture[[Interface\CastingBar\UI-CastingBar-Spark]]
+            PlayerFrameManaBar.energy.spark:SetSize(32, 32)
+            PlayerFrameManaBar.energy.spark:SetPoint("CENTER", PlayerFrameManaBar, 0, 0)
+            PlayerFrameManaBar.energy.spark:SetBlendMode("ADD")
+            PlayerFrameManaBar.energy.spark:SetAlpha(0.4) -- Initial state: dimmed
         end
-    elseif event == "UNIT_POWER_UPDATE" then
-        UpdateEnergy()
-        UpdateMana()
-    elseif event == "UNIT_SPELLCAST_STOP" or event == "UNIT_SPELLCAST_SUCCEEDED" then
-        manaRegenStartTime = GetTime()
-    elseif event == "COMBAT_LOG_EVENT_UNFILTERED" then
-        RealTick()
+
+        -- Mana
+        if not PlayerFrameManaBar.mana then
+            PlayerFrameManaBar.mana = CreateFrame("Statusbar", "PlayerFrameManaBar_mana", PlayerFrameManaBar)
+            PlayerFrameManaBar.mana.spark = PlayerFrameManaBar.mana:CreateTexture(nil, "OVERLAY")
+            PlayerFrameManaBar.mana.spark:SetTexture[[Interface\CastingBar\UI-CastingBar-Spark]]
+            PlayerFrameManaBar.mana.spark:SetSize(32, 32)
+            PlayerFrameManaBar.mana.spark:SetPoint("CENTER", PlayerFrameManaBar, 0, 0)
+            PlayerFrameManaBar.mana.spark:SetBlendMode("ADD")
+            PlayerFrameManaBar.mana.spark:SetAlpha(0.4) -- Initial state: dimmed
+        end
+
+        PlayerFrameManaBar.energy:RegisterUnitEvent("UNIT_POWER_UPDATE", "player")
+        PlayerFrameManaBar.mana:RegisterUnitEvent("UNIT_POWER_UPDATE", "player")
+
+        if not PlayerFrameManaBar.energy:GetScript("OnUpdate") then
+            PlayerFrameManaBar.energy:SetScript("OnUpdate", OnUpdate)
+        end
     end
+
+    local function RealTick()
+        local _, eventType, _, _, _, sourceFlags, _, _, _, destFlags, _, spellID = CombatLogGetCurrentEventInfo()
+        if not (eventType == "SPELL_PERIODIC_ENERGIZE" or eventType == "SPELL_ENERGIZE") then return end
+
+        local isDestPlayer = CombatLog_Object_IsA(destFlags, COMBATLOG_FILTER_ME)
+        if isDestPlayer then
+            externalManaGainTimestamp = GetTime()
+        end
+    end
+	 local _, class = UnitClass("player")
+    local function OnEvent(self, event, ...)
+        
+        -- Check for energy and mana tick classes
+        if class == "ROGUE" or class == "DRUID" then
+            -- Show Energy Spark for ROGUE and DRUID
+            if PlayerFrameManaBar.energy then
+                PlayerFrameManaBar.energy.spark:SetAlpha(1)
+            end
+        else
+            -- Hide Energy Spark for other classes
+            if PlayerFrameManaBar.energy then
+                PlayerFrameManaBar.energy.spark:SetAlpha(0)
+            end
+        end
+
+        -- Mana Ticks for MAGE, PRIEST, WARLOCK, HUNTER, SHAMAN, PALADIN, and DRUID
+        if class == "MAGE" or class == "PRIEST" or class == "WARLOCK" or 
+           class == "HUNTER" or class == "SHAMAN" or class == "PALADIN" or 
+           class == "DRUID" then
+            if PlayerFrameManaBar.mana then
+                PlayerFrameManaBar.mana.spark:SetAlpha(1) -- Show Mana Spark
+            end
+        else
+            -- Hide Mana Spark for other classes
+            if PlayerFrameManaBar.mana then
+                PlayerFrameManaBar.mana.spark:SetAlpha(0)
+            end
+        end
+
+        if not (Lorti.energytick and (class == "ROGUE" or class == "DRUID" or
+            class == "MAGE" or class == "PRIEST" or class == "WARLOCK" or 
+            class == "HUNTER" or class == "SHAMAN" or class == "PALADIN")) then
+            self:UnregisterAllEvents()
+            self:SetScript("OnEvent", nil)
+            return
+        end
+
+        if event == "PLAYER_LOGIN" then
+            AddTicks()
+            self:UnregisterEvent("PLAYER_LOGIN")
+        elseif event == "PLAYER_REGEN_DISABLED" then
+            if PlayerFrameManaBar.energy then PlayerFrameManaBar.energy.spark:SetAlpha(1) end
+            if PlayerFrameManaBar.mana then PlayerFrameManaBar.mana.spark:SetAlpha(0.4) end
+        elseif event == "PLAYER_REGEN_ENABLED" then
+            if PlayerFrameManaBar.energy then PlayerFrameManaBar.energy.spark:SetAlpha(1) end
+            if PlayerFrameManaBar.mana then PlayerFrameManaBar.mana.spark:SetAlpha(0.4) end
+        elseif event == "UPDATE_SHAPESHIFT_FORM" and class == "DRUID" then
+            if PlayerFrameManaBar.energy and UnitPowerType("player") ~= 3 then
+                PlayerFrameManaBar.energy.spark:SetAlpha(0)
+            elseif PlayerFrameManaBar.energy then
+                PlayerFrameManaBar.energy.spark:SetAlpha(1)
+            end
+        elseif event == "UNIT_POWER_UPDATE" then
+            UpdateEnergy()
+            UpdateMana()
+        elseif event == "UNIT_SPELLCAST_STOP" or event == "UNIT_SPELLCAST_SUCCEEDED" then
+            manaRegenStartTime = GetTime()
+        elseif event == "COMBAT_LOG_EVENT_UNFILTERED" then
+            RealTick()
+        end
+    end
+
+    local e = CreateFrame("Frame")
+    for _, v in pairs(events) do e:RegisterEvent(v) end
+    e:SetScript("OnEvent", OnEvent)
 end
 
-local e = CreateFrame("Frame")
-for _, v in pairs(events) do e:RegisterEvent(v) end
-e:SetScript("OnEvent", OnEvent)
-end
-
-end
 
 
 --[[
