@@ -2110,8 +2110,8 @@ local function OnEvent(self, event, ...)
         if PlayerFrameManaBar.energy then PlayerFrameManaBar.energy.spark:SetAlpha(1) end
         if PlayerFrameManaBar.mana then PlayerFrameManaBar.mana.spark:SetAlpha(1) end
     elseif event == "PLAYER_REGEN_ENABLED" then
-        if PlayerFrameManaBar.energy then PlayerFrameManaBar.energy.spark:SetAlpha(.4) end
-        if PlayerFrameManaBar.mana then PlayerFrameManaBar.mana.spark:SetAlpha(.4) end
+        if PlayerFrameManaBar.energy then PlayerFrameManaBar.energy.spark:SetAlpha(1) end
+        if PlayerFrameManaBar.mana then PlayerFrameManaBar.mana.spark:SetAlpha(1) end
     elseif event == "UPDATE_SHAPESHIFT_FORM" and class == "DRUID" then
         if PlayerFrameManaBar.energy and UnitPowerType("player") ~= 3 then
             PlayerFrameManaBar.energy.spark:SetAlpha(0)
