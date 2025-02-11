@@ -2,7 +2,7 @@ local Name, ns = ...;
 local Title = select(2,GetAddOnInfo(Name)):gsub("%s*v?[%d%.]+$","");
 local cfg = ns.cfg
 
-Lorti = { keyhide, macrohide, stealth, switchtimer, gloss, bigbuff, thickness, classbars, ClassPortraits, partybuff, raidbuff, ColoredHP, ActionbarTexture, hitindicator, playername, playerFrameIndex, LortiTextureIndex, fontIndex }
+Lorti = { keyhide, macrohide, stealth, switchtimer, gloss, bigbuff, thickness, classbars, ClassPortraits, energytick, raidbuff, ColoredHP, ActionbarTexture, hitindicator, playername, playerFrameIndex, LortiTextureIndex, fontIndex }
 
 local default = {
     keyhide = false,
@@ -15,7 +15,7 @@ local default = {
     classbars = false,
 	ColoredHP = false,
     ClassPortraits = false,
-    partybuff = false,
+    energytick = false,
 	raidbuff = false,
     ActionbarTexture = false,
     hitindicator = false,
@@ -144,7 +144,7 @@ function f:CreateGUI()
 
         local title=Panel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge");
 		title:SetFont("Fonts\\FRIZQT__.TTF", 20, "OUTLINE") 
-        title:SetPoint("TOPLEFT", 210,-15);
+        title:SetPoint("TOPLEFT", 230,-15);
         title:SetText(Title);
 		title:SetTextColor(0.1, 1, 0.5, 1) 
 		title:SetShadowColor(0, 0, 0) 
@@ -164,7 +164,7 @@ function f:CreateGUI()
 	
 	local SeparatorTitle = Panel:CreateTexture(nil, "BACKGROUND")
 	SeparatorTitle:SetSize(500, 1) -- Width of the panel, height of 1 pixel
-	SeparatorTitle:SetPoint("TOPLEFT", title, "BOTTOMLEFT", -150, -10)
+	SeparatorTitle:SetPoint("TOPLEFT", title, "BOTTOMLEFT", -170, -10)
 	SeparatorTitle:SetColorTexture(0.3, 0.3, 0.3, 1) -- Gray color for the line
 	
 	local HotKeyButton = CheckBtn("Hide hotkeys", "Hide hotkeys on action bars", Panel, function(self, value)
@@ -240,44 +240,45 @@ function f:CreateGUI()
 	ClassPortraitsButton:SetChecked(Lorti.ClassPortraits)
 	ClassPortraitsButton.text:SetTextColor(1, 0.8, 0, 1)
 	
-	local PartyBuffButton = CheckBtn("Party Buffs", "Show Party Buffs and move the debuffs position on default Party Frames (Disable Raid Buffs option to avoid conflict!)", Panel, function(self, value)
-            Lorti.partybuff = value
+	local HitindicatorButton = CheckBtn("Hide Hit indicator", "Hide PlayerFrame hit indicator", Panel, function(self, value)
+            Lorti.hitindicator = value
         end)
-    PartyBuffButton:SetPoint("TOPLEFT", ClassPortraitsButton, "BOTTOMLEFT", -300, 0)
-	PartyBuffButton:SetChecked(Lorti.partybuff)
-	PartyBuffButton.text:SetTextColor(1, 0.8, 0, 1)
+    HitindicatorButton:SetPoint("TOPLEFT", ClassPortraitsButton, "BOTTOMLEFT", -300, 0)
+	HitindicatorButton:SetChecked(Lorti.hitindicator)
+	HitindicatorButton.text:SetTextColor(1, 0.8, 0, 1)
 	
 	 local ActionbarTextureButton = CheckBtn("Hide background", "Hide gryphons and actionbar, menu, bags background", Panel, function(self, value)
             Lorti.ActionbarTexture = value
         end)
-    ActionbarTextureButton:SetPoint("TOPLEFT", PartyBuffButton, "BOTTOMLEFT", 300, 27)
+    ActionbarTextureButton:SetPoint("TOPLEFT", HitindicatorButton, "BOTTOMLEFT", 300, 27)
 	ActionbarTextureButton:SetChecked(Lorti.ActionbarTexture)
 	ActionbarTextureButton.text:SetTextColor(1, 0.8, 0, 1)
 	
-	local RaidBuffButton = CheckBtn("Raid Buffs", "Show all Buffs on Raid Frames, not only yours (Disable Party Buffs option to avoid conflict!)", Panel, function(self, value)
-            Lorti.raidbuff = value
+	local EnergyButton = CheckBtn("Energy/Mana ticks", "Enable Energy and/or Mana ticks or both if you are a druid", Panel, function(self, value)
+            Lorti.energytick = value
         end)
-    RaidBuffButton:SetPoint("TOPLEFT", ActionbarTextureButton, "BOTTOMLEFT", -300, 0)
-	RaidBuffButton:SetChecked(Lorti.raidbuff)
-	RaidBuffButton.text:SetTextColor(1, 0.8, 0, 1)
+    EnergyButton:SetPoint("TOPLEFT", ActionbarTextureButton, "BOTTOMLEFT", -300, 0)
+	EnergyButton:SetChecked(Lorti.energytick)
+	EnergyButton.text:SetTextColor(1, 0.8, 0, 1)
 	
 	local PlayernameButton = CheckBtn("Hide player name", "Hide the name of the Player unit frame", Panel, function(self, value)
             Lorti.playername = value
         end)
-    PlayernameButton:SetPoint("TOPLEFT", RaidBuffButton, "BOTTOMLEFT", 300, 27)
+    PlayernameButton:SetPoint("TOPLEFT", EnergyButton, "BOTTOMLEFT", 300, 27)
 	PlayernameButton:SetChecked(Lorti.playername)
 	PlayernameButton.text:SetTextColor(1, 0.8, 0, 1)
 	
-	local HitindicatorButton = CheckBtn("Hide Hit indicator", "Hide PlayerFrame hit indicator", Panel, function(self, value)
-            Lorti.hitindicator = value
+	--[[ local RaidBuffButton = CheckBtn("Raid Buffs", "Show all Buffs on Raid Frames, not only yours (Disable Party Buffs option to avoid conflict!)", Panel, function(self, value)
+            Lorti.raidbuff = value
         end)
-    HitindicatorButton:SetPoint("TOPLEFT", PlayernameButton, "BOTTOMLEFT", -300, 0)
-	HitindicatorButton:SetChecked(Lorti.hitindicator)
-	HitindicatorButton.text:SetTextColor(1, 0.8, 0, 1)
+    RaidBuffButton:SetPoint("TOPLEFT", PlayernameButton, "BOTTOMLEFT", -300, 0)
+	RaidBuffButton:SetChecked(Lorti.raidbuff)
+	RaidBuffButton.text:SetTextColor(1, 0.8, 0, 1) ]]
+	
 	
 	local Separator = Panel:CreateTexture(nil, "BACKGROUND")
 	Separator:SetSize(500, 1) -- Width of the panel, height of 1 pixel
-	Separator:SetPoint("TOPLEFT", HitindicatorButton, "BOTTOMLEFT", 10, -10)
+	Separator:SetPoint("TOPLEFT", EnergyButton, "BOTTOMLEFT", 10, -10)
 	Separator:SetColorTexture(0.3, 0.3, 0.3, 1) -- Gray color for the line
 	
 	-- Player Frame Selector Title
@@ -613,7 +614,46 @@ end
             Lorti.NumSize = NumSizeSlider:GetValue()
             ApplyFonts()
         end)
-		
+	
+		-- Frames centering / restore.
+
+		-- Create a font string for the positioning options title.
+		local positionOptions = Panel:CreateFontString("mainOptions", "OVERLAY", "GameFontNormal")
+		positionOptions:SetFont("Fonts\\FRIZQT__.TTF", 14, "OUTLINE")
+		positionOptions:SetText("Positioning options:")
+		positionOptions:SetPoint("TOPLEFT", Separator, "BOTTOMLEFT", 150, -160)
+
+		-- Create a font string for additional info.
+		local centerBttnInfo = Panel:CreateFontString("centerBttnInfo", "OVERLAY", "GameFontNormal")
+		centerBttnInfo:SetFont("Fonts\\FRIZQT__.TTF", 12, "OUTLINE")
+		centerBttnInfo:SetText("Center player and target frames middle screen.")
+		centerBttnInfo:SetPoint("TOPLEFT", positionOptions, "BOTTOMLEFT", -60, -10)
+
+		-- Create the "Center frames" button.
+		local centerBttn = CreateFrame("Button", "centerButton", Panel, "UIPanelButtonTemplate")
+		centerBttn:SetSize(100, 25)
+		centerBttn:SetText("Center frames")
+		centerBttn:SetPoint("TOPLEFT", centerBttnInfo, "BOTTOMLEFT", 30, -10)
+		centerBttn:SetScript("OnClick", function()
+		local x, y = -20, -150
+			for i, f in ipairs({PlayerFrame, TargetFrame}) do
+				f:ClearAllPoints()
+				f:SetPoint(i == 1 and "RIGHT" or "LEFT", UIParent, "CENTER", i == 1 and x or -x, y)
+				f:SetUserPlaced(true)
+			end
+		end)
+
+		-- Create the "Reset frames" button.
+		local resetBttn = CreateFrame("Button", "resetButton", Panel, "UIPanelButtonTemplate")
+		resetBttn:SetSize(100, 25)
+		resetBttn:SetText("Reset frames")
+		resetBttn:SetPoint("TOPLEFT", centerBttn, "BOTTOMLEFT", 120, 25)
+		resetBttn:SetScript("OnClick", function()
+		PlayerFrame_ResetUserPlacedPosition()
+		TargetFrame_ResetUserPlacedPosition()
+		end)
+
+	
 	end
 	return Panel
 end
@@ -621,17 +661,21 @@ end
 function playerFrameDo()
 	local frameType;
 	if Lorti.playerFrameIndex == 1 then
-		frameType = "Thick-UI-TargetingFrame";
+		frameType = "UI-TargetingFrame";
 	elseif Lorti.playerFrameIndex == 2 then
-		frameType = "Thick-Elite"
+		frameType = "Elite"
 	elseif Lorti.playerFrameIndex == 3 then
-		frameType = "Thick-Rare"
+		frameType = "Rare"
 	elseif Lorti.playerFrameIndex == 4 then
-		frameType = "Thick-Rare-Elite"
+		frameType = "Rare-Elite"
 	else
-		frameType = "Thick-UI-TargetingFrame";
+		frameType = "UI-TargetingFrame";
 	end
-	PlayerFrameTexture:SetTexture("Interface\\Addons\\Lorti-UI-Classic\\textures\\target\\"..frameType);
+	if Lorti.thickness then
+        PlayerFrameTexture:SetTexture("Interface\\Addons\\Lorti-UI-Classic\\textures\\target\\Thick-"..frameType);
+    else
+        PlayerFrameTexture:SetTexture("Interface\\Addons\\Lorti-UI-Classic\\textures\\target\\"..frameType);
+    end
 end
 
 function SBTexturesDo()

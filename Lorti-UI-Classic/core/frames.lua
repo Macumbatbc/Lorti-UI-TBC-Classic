@@ -126,20 +126,20 @@ local function ApplyThickness()
 			end
 			self.name:ClearAllPoints();
 			self.name:SetPoint("CENTER", PlayerFrame, "CENTER",50.5, 36);
-			self.healthbar:SetPoint("TOPLEFT",106,-24);
-			self.healthbar:SetHeight(26);
+			self.healthbar:SetPoint("TOPLEFT",107,-24);
+			self.healthbar:SetHeight(28);
 			self.healthbar.LeftText:ClearAllPoints();
 			self.healthbar.LeftText:SetPoint("LEFT",self.healthbar,"LEFT",8,0);
 			self.healthbar.RightText:ClearAllPoints();
 			self.healthbar.RightText:SetPoint("RIGHT",self.healthbar,"RIGHT",-5,0);
-			self.healthbar.TextString:SetPoint("CENTER", self.healthbar, "CENTER", 0, 0);
+			self.healthbar.TextString:SetPoint("CENTER", self.healthbar, "CENTER", 1, 0);
 			self.manabar:SetPoint("TOPLEFT",106,-52);
-			self.manabar:SetHeight(13);
+			self.manabar:SetHeight(12);
 			self.manabar.LeftText:ClearAllPoints();
 			self.manabar.LeftText:SetPoint("LEFT",self.manabar,"LEFT",8,0);
 			self.manabar.RightText:ClearAllPoints();
 			self.manabar.RightText:SetPoint("RIGHT",self.manabar,"RIGHT",-5,0);
-			self.manabar.TextString:SetPoint("CENTER",self.manabar,"CENTER",0,0);
+			self.manabar.TextString:SetPoint("CENTER",self.manabar,"CENTER",-1,0);
 			PlayerFrameGroupIndicatorText:ClearAllPoints();
 			PlayerFrameGroupIndicatorText:SetPoint("BOTTOMLEFT", PlayerFrame,"TOP",0,-20);
 			PlayerFrameGroupIndicatorLeft:Hide();
@@ -156,10 +156,10 @@ local function ApplyThickness()
 			self.highLevelTexture:SetPoint("CENTER", self.levelText, "CENTER", 0,0);
 			self.nameBackground:Hide();
 			self.name:SetPoint("LEFT", self, 15, 36);
-			self.healthbar:SetSize(119, 26);
-			self.healthbar:SetPoint("TOPLEFT", 5, -24);
-			self.manabar:SetPoint("TOPLEFT", 7, -52);
-			self.manabar:SetSize(119, 13);
+			self.healthbar:SetSize(110, 28);
+			self.healthbar:SetPoint("TOPLEFT", 6, -23);
+			self.manabar:SetPoint("TOPLEFT", 6, -52);
+			self.manabar:SetSize(110, 12);
 			self.healthbar.LeftText:SetPoint("LEFT", self.healthbar, "LEFT", 8, 0);
 			self.healthbar.RightText:SetPoint("RIGHT", self.healthbar, "RIGHT", -5, 0);
 			self.healthbar.TextString:SetPoint("CENTER", self.healthbar, "CENTER", 0, 0);
@@ -217,8 +217,14 @@ local function Classify(self, forceNormalTexture)
 			self.borderTexture:SetTexture("Interface\\TargetingFrame\\UI-TargetingFrame")
 			self.borderTexture:SetVertexColor(.05, .05, .05)
 		end
+		
 end
-	
+
+function LortiUIPlayerFrame(self)
+		self.healthbar:SetPoint("TOPLEFT",108,-40);
+		self.manabar:SetPoint("TOPLEFT",108,-52);
+end
+
 local function ColorRaid()
 	for g = 1, NUM_RAID_GROUPS do
 		local group = _G["CompactRaidGroup"..g.."BorderFrame"]
@@ -1148,7 +1154,7 @@ GameTooltipStatusBar:SetSize(1,2)
 -- Reputation and XP bar hack to make it always shown
 
 SetCVar("xpBarText", 1)
-
+SetCVar("showPartyPets", 1)
 
 
 
@@ -1169,7 +1175,7 @@ function ns.createDeadTextFrames()
 		L.GHOST   = "Fantôme"
 	elseif locale == "deDE" then
 		L.GHOST   = "Geist"
-	elseif locale == "esES" or locale == "esMX" then
+	elseif locale == "esES" or locale == "esMX" or locale == "itIT" or locale == "ptBR" then
 		L.GHOST   = "Fantasma"
 	elseif locale == "ruRU" then
 		L.GHOST   = "Призрак"
@@ -1182,6 +1188,7 @@ function ns.createDeadTextFrames()
 	else
 		L.GHOST   = "GHOST"
 	end
+
 	ns.LGhost = L.GHOST
     -- For the player frame:
     local deadText = CreateText("DeadText", "PlayerFrame", PlayerFrameHealthBar, "CENTER", 0, 0)
@@ -1217,10 +1224,10 @@ local function CreatePartyDeadTexts()
             
             deadText:SetParent(UIParent)
 			if Lorti.bigbuff then
-				deadText:SetPoint("CENTER", frame, "CENTER", 30, 14)
+				deadText:SetPoint("CENTER", frame, "CENTER", 30, 12)
 				deadText:SetFont(Lorti.fontFamily, Lorti.StringSize, "OUTLINE")
 			else
-				deadText:SetPoint("CENTER", frame, "CENTER", 18, 8)
+				deadText:SetPoint("CENTER", frame, "CENTER", 18, 9)
 				deadText:SetFont(Lorti.fontFamily, Lorti.StringSize-3, "OUTLINE")
 			end
 
@@ -1429,6 +1436,115 @@ function ns.focusDeadCheck()
     end
 end
 
+-- party font (credit Xyz)
+-- Function to update (or remove) party health/mana texts based on unit status.
+local function PartyStatusBarText()
+    for i = 1, 4 do
+        local partyFrame = _G["PartyMemberFrame" .. i]
+        if partyFrame then
+            -- Determine the unit for this party frame (use partyFrame.unit if set, or default to "partyX")
+            local unit = partyFrame.unit or ("party" .. i)
+            local name = _G["PartyMemberFrame" .. i .. "Name"]
+            local parentFrame = name:GetParent()
+            local healthBar = _G["PartyMemberFrame" .. i .. "HealthBar"]
+            local manaBar = _G["PartyMemberFrame" .. i .. "ManaBar"]
+            
+            -- Try to retrieve already created font strings.
+            local healthText = _G["PartyMemberFrame" .. i .. "HealthBarText"]
+            local manaText = _G["PartyMemberFrame" .. i .. "ManaBarText"]
+			local numSize = Lorti.NumSize or 12
+			local font = Lorti.fontFamily or "Fonts\\FRIZQT__.TTF"
+            -- If the unit exists, is connected, and is not dead or a ghost…
+            if UnitExists(unit) and UnitIsConnected(unit) and not UnitIsDeadOrGhost(unit) then
+                -- Create (or show) the health text.
+                if not healthText then
+                    healthText = parentFrame:CreateFontString("PartyMemberFrame" .. i .. "HealthBarText", "OVERLAY", "TextStatusBarText")
+					healthText:SetPoint("CENTER", 18, 8.5)
+                    SetTextStatusBarText(healthBar, healthText)
+                    healthBar.TextString:SetFont(font, numSize - 4, "OUTLINE")
+                    healthBar.TextString:SetShadowOffset(1, -1)
+                    healthBar.TextString:SetShadowColor(0, 0, 0)
+                else
+                    healthText:Show()
+                end
+
+                -- Create (or show) the mana text.
+                if not manaText then
+                    manaText = parentFrame:CreateFontString("PartyMemberFrame" .. i .. "ManaBarText", "OVERLAY", "TextStatusBarText")
+                    manaText:SetPoint("CENTER", 18, -2)
+                    SetTextStatusBarText(manaBar, manaText)
+                    manaBar.TextString:SetFont(font, numSize - 5, "OUTLINE")
+                    manaBar.TextString:SetShadowOffset(1, -1)
+                    manaBar.TextString:SetShadowColor(0, 0, 0)
+                else
+                    manaText:Show()
+                end
+            else
+                -- If the unit is offline, dead, or a ghost, hide the texts.
+                if healthText then
+                    healthText:Hide()
+                end
+                if manaText then
+                    manaText:Hide()
+                end
+            end
+        end
+    end
+end
+
+hooksecurefunc("TextStatusBar_UpdateTextStringWithValues", function(statusFrame, textString, value, valueMin, valueMax)
+    local unit = statusFrame.unit
+
+	if unit and unit:match("^party%d+$") and UnitExists(unit) and UnitIsConnected(unit) and not UnitIsDeadOrGhost(unit) then
+        local name = statusFrame:GetName() or ""
+        if name:find("HealthBar") then
+            textString:SetFont(Lorti.fontFamily, Lorti.NumSize - 4, "OUTLINE")
+        elseif name:find("ManaBar") then
+            textString:SetFont(Lorti.fontFamily, Lorti.NumSize - 5, "OUTLINE")
+        else
+            ApplyFonts()
+        end
+
+	end
+    if unit and not UnitIsConnected(unit) then
+        if statusFrame:GetName() and string.find(statusFrame:GetName(), "HealthBar") then
+            -- textString:SetText(PLAYER_OFFLINE)
+			textString:SetText("")
+        else
+            textString:SetText("")
+        end
+    elseif unit and UnitIsDeadOrGhost(unit) then
+        if statusFrame:GetName() and string.find(statusFrame:GetName(), "HealthBar") then
+            -- textString:SetText(DEAD)
+			textString:SetText("")
+        else
+            textString:SetText("")
+        end
+    end
+end)
+
+-- Create a frame to listen for party-related events.
+local updatePartyStatusFrame = CreateFrame("Frame")
+updatePartyStatusFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
+updatePartyStatusFrame:RegisterEvent("UNIT_CONNECTION")
+updatePartyStatusFrame:RegisterEvent("UNIT_HEALTH")
+updatePartyStatusFrame:SetScript("OnEvent", function(self, event, arg1)
+    -- For events that are unit-specific (like UNIT_HEALTH or UNIT_CONNECTION), only update if the unit is a party member.
+    if (event == "UNIT_HEALTH" or event == "UNIT_CONNECTION") then
+        if arg1 and string.find(arg1, "party") then
+            PartyStatusBarText()
+        end
+    else
+        -- For group roster changes, update all party frames.
+        PartyStatusBarText()
+    end
+end)
+
+-- Optionally, call the update function on login/initialization:
+PartyStatusBarText()
+
+
+
 -- Create a frame to listen to unit events.
 local deadCheckFrame = CreateFrame("Frame")
 deadCheckFrame:RegisterEvent("PLAYER_LOGIN")
@@ -1438,27 +1554,37 @@ deadCheckFrame:RegisterEvent("PLAYER_FOCUS_CHANGED")
 deadCheckFrame:RegisterEvent("PLAYER_DEAD")
 deadCheckFrame:RegisterEvent("PLAYER_UNGHOST")
 deadCheckFrame:RegisterEvent("PLAYER_ALIVE")
+deadCheckFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
+deadCheckFrame:RegisterEvent("UNIT_HEALTH")
+deadCheckFrame:RegisterEvent("UNIT_CONNECTION")
 deadCheckFrame:SetScript("OnEvent", function(self, event, ...)
     if event == "PLAYER_LOGIN" then
         -- Create the dead/ghost/offline texts when the addon loads
         ns.createDeadTextFrames()
+		
     elseif event == "PLAYER_ENTERING_WORLD" then
         ns.playerDeadCheck()
+	
     elseif event == "PLAYER_TARGET_CHANGED" then
         ns.targetDeadCheck()
+
     elseif event == "PLAYER_FOCUS_CHANGED" then
         ns.focusDeadCheck()
+
     elseif event == "PLAYER_DEAD" then
         ns.playerDeadCheck()
         ns.focusDeadCheck()
+
     elseif event == "PLAYER_UNGHOST" then
         ns.playerDeadCheck()
         ns.targetDeadCheck()
         ns.focusDeadCheck()
+
     elseif event == "PLAYER_ALIVE" then
         ns.playerDeadCheck()
         ns.targetDeadCheck()
         ns.focusDeadCheck()
+
     end
 end)
 
@@ -1507,7 +1633,6 @@ function ApplyFonts()
 	FocusFrameManaBar.TextString:SetFont(Lorti.fontFamily, Lorti.NumSize, StringType)
 	FocusFrameManaBar.LeftText:SetFont(Lorti.fontFamily, Lorti.NumSize, StringType)
 	FocusFrameManaBar.RightText:SetFont(Lorti.fontFamily, Lorti.NumSize, StringType)
-	
 end
 
 
@@ -1641,6 +1766,23 @@ local function ScaleFrames()
 	end
 end
 
+local frame3 = CreateFrame("FRAME")
+frame3:RegisterEvent("GROUP_ROSTER_UPDATE")
+frame3:RegisterEvent("PLAYER_TARGET_CHANGED")
+frame3:RegisterEvent("PLAYER_FOCUS_CHANGED")
+frame3:RegisterEvent("UNIT_FACTION")
+local function eventHandler(self, event, ...)
+        if UnitIsPlayer("target") then
+                c = RAID_CLASS_COLORS[select(2, UnitClass("target"))]
+                TargetFrameNameBackground:SetVertexColor(0, 0, 0, 0.35)
+        end
+        if UnitIsPlayer("focus") then
+                c = RAID_CLASS_COLORS[select(2, UnitClass("focus"))]
+                FocusFrameNameBackground:SetVertexColor(0, 0, 0, 0.35)
+        end
+end
+frame3:SetScript("OnEvent", eventHandler)
+
 local function OnEvent(self, event)
 	for addon in pairs(addonlist) do
 		if IsAddOnLoaded(addon) then
@@ -1658,6 +1800,7 @@ local function OnEvent(self, event)
 		if Lorti.thickness then
             ApplyThickness()
         else
+			hooksecurefunc("PlayerFrame_ToPlayerArt", LortiUIPlayerFrame)
             hooksecurefunc("TargetFrame_CheckClassification", Classify)
         end
 		
@@ -1754,12 +1897,10 @@ function LortiPartyFrames()
 	if IsInGroup(player) and (not IsInRaid(player)) and (not useCompact) then
 		for i = 1, 4 do
 			
-			--	_G["PartyMemberFrame"..i.."HealthBar"]:SetStatusBarTexture("Interface\\Addons\\whoaThickFrames_BCC\\media\\statusbar\\"..cfg.SBTextureName);
-			--	_G["PartyMemberFrame"..i.."HealthBar"]:SetStatusBarTexture("Interface\\Addons\\whoaThickFrames_BCC\\media\\statusbar\\"..cfg.SBTextureName);
 			
 			-- _G["PartyMemberFrame"..i.."Name"]:SetSize(75,10);
-			_G["PartyMemberFrame"..i.."Texture"]:SetTexture("Interface\\Addons\\whoaThickFrames_BCC\\media\\dark\\UI-PartyFrame");
-			_G["PartyMemberFrame"..i.."Flash"]:SetTexture("Interface\\Addons\\whoaThickFrames_BCC\\media\\UI-PARTYFRAME-FLASH");
+			_G["PartyMemberFrame"..i.."Texture"]:SetTexture("Interface\\Addons\\Lorti-UI-Classic\\textures\\unitframes\\UI-PartyFrame");
+			_G["PartyMemberFrame"..i.."Flash"]:SetTexture("Interface\\Addons\\Lorti-UI-Classic\\textures\\unitframes\\UI-PARTYFRAME-FLASH");
 			_G["PartyMemberFrame"..i.."HealthBar"]:ClearAllPoints();
 			_G["PartyMemberFrame"..i.."HealthBar"]:SetPoint("TOPLEFT", 45, -13);
 			_G["PartyMemberFrame"..i.."HealthBar"]:SetHeight(12);
@@ -1788,7 +1929,7 @@ local function RepositionPartyFrames()
     -- Adjust these base offsets as needed.
     local baseX = 300  -- distance from the left edge
     local baseY = 100  -- distance from the bottom edge
-    local spacing = 5  -- space between frames
+    local spacing = 10  -- space between frames
 
     for i = 1, 4 do
         local frame = _G["PartyMemberFrame" .. i]
@@ -1799,144 +1940,203 @@ local function RepositionPartyFrames()
             -- and subsequent frames are moved upward by the frame's height plus a little spacing.
             local height = frame:GetHeight() -- fallback height if GetHeight() is nil
 			if Lorti.bigbuff then
-				frame:SetPoint("CENTER", CompactRaidFrameManager, "CENTER", 140, -60 + (height + spacing) * (i - 1))
+				frame:SetPoint("CENTER", CompactRaidFrameManager, "CENTER", 130, 0 - (height + spacing) * (i - 1))
 			else
-				frame:SetPoint("CENTER", CompactRaidFrameManager, "CENTER", 170, -20 + (height + spacing) * (i - 1))
+				frame:SetPoint("CENTER", CompactRaidFrameManager, "CENTER", 170, 35 - (height + spacing) * (i - 1))
 			end
         end
     end
 end
+
 local f = CreateFrame("Frame")
 f:RegisterEvent("PLAYER_ENTERING_WORLD")
 f:SetScript("OnEvent", function(self, event)
     RepositionPartyFrames()
 end)
 
---Party Buffs and Debuff
-if Lorti.partybuff then
+if Lorti.energytick then
+if Lorti.energytick then
+local events = {
+    "PLAYER_LOGIN",
+    "PLAYER_REGEN_DISABLED",
+    "PLAYER_REGEN_ENABLED",
+    "UPDATE_SHAPESHIFT_FORM",
+    "COMBAT_LOG_EVENT_UNFILTERED",
+    "UNIT_POWER_UPDATE",
+    "UNIT_SPELLCAST_STOP",
+    "UNIT_SPELLCAST_SUCCEEDED"
+}
 
--- Update party debuffs (for party frames)
-function RefreshPartyDebuffs(parent, unit, maxDebuffs, filter, showAll)
-    -- Set a fixed icon size for party debuffs (adjust as needed)
-    local iconSize = 16
-    local index = 1      -- index for the UnitDebuff call
-    local frameIndex = 1 -- index for the debuff frames on the parent
+local last_energy_tick = GetTime()
+local last_mana_tick = GetTime()
+local last_energy_value = 0
+local last_mana_value = 0
+local externalManaGainTimestamp = 0
+local TimeSinceLastUpdate = 0
+local ONUPDATE_INTERVAL = 0.01
+local manaRegenStartTime = 0
 
-    while true do
-        local name, icon, count, debuffType, duration, expirationTime = UnitDebuff(unit, index, filter)
-        if not name then
-            break  -- No more debuffs to process
-        end
-
-        local debuff = parent["Debuff"..frameIndex]
-        if not debuff then
-            debuff = CreateFrame("Frame", parent:GetName().."Debuff"..frameIndex, parent, "PartyDebuffFrameTemplate")
-            parent["Debuff"..frameIndex] = debuff
-
-            if frameIndex == 1 then
-                debuff:SetPoint("LEFT", parent, "RIGHT", -7, 5)
-            else
-                debuff:SetPoint("LEFT", parent["Debuff"..(frameIndex - 1)], "RIGHT", 2, 0)
-            end
-
-            debuff:EnableMouse(false)
-
-            if not debuff.cooldown then
-                debuff.cooldown = CreateFrame("Cooldown", debuff:GetName().."Cooldown", debuff, "CooldownFrameTemplate")
-                debuff.cooldown:SetAllPoints(debuff)
-            end
-            -- Optionally, you may also set a fixed size for the debuff icon here:
-            debuff:SetSize(iconSize, iconSize)
-        end
-
-        local iconTexture = _G[debuff:GetName().."Icon"]
-        local countText   = _G[debuff:GetName().."Count"]
-        if iconTexture then
-            iconTexture:SetTexture(icon)
-        end
-        if countText then
-            countText:SetText((count and count > 1) and count or "")
-        end
-        debuff:Show()
-
-        if debuff.cooldown then
-            if duration and duration > 0 then
-                debuff.cooldown:Show()
-                CooldownFrame_Set(debuff.cooldown, expirationTime - duration, duration, true)
-            else
-                debuff.cooldown:Hide()
-            end
-        end
-
-        frameIndex = frameIndex + 1
-        index = index + 1
-    end
-
-    -- Hide any extra debuff frames that might have been shown previously.
-    for i = frameIndex, maxDebuffs do
-        local debuff = parent["Debuff"..i]
-        if debuff then
-            debuff:Hide()
+-- Function to set the tick marker position
+local function SetTickValue(self, value, resourceType)
+    local x = self:GetWidth()
+    local position = ((x * value) / 2.02)
+  
+    if position < x then
+        if resourceType == "energy" and self.energy then
+            self.energy.spark:Show()
+            self.energy.spark:SetPoint("CENTER", self, "LEFT", position, 0)
+        elseif resourceType == "mana" and self.mana then
+            self.mana.spark:Show()
+            self.mana.spark:SetPoint("CENTER", self, "LEFT", position, 0)
         end
     end
 end
 
+-- OnUpdate function
+local function OnUpdate(self, elapsed)
+    local time = GetTime()
+    local vEnergy = time - last_energy_tick
+    local vMana = time - last_mana_tick
+    TimeSinceLastUpdate = TimeSinceLastUpdate + elapsed
 
-	for i = 1, 4 do
-		local f = _G["PartyMemberFrame" .. i]
-		f:UnregisterEvent("UNIT_AURA")
-		local g = CreateFrame("Frame")
-		g:RegisterEvent("UNIT_AURA")
-		g:SetScript(
-			"OnEvent",
-			function(self, event, a1)
-				if a1 == f.unit then
-					RefreshDebuffs(f, a1, 20, nil, 1)
-				else
-					if a1 == f.unit .. "pet" then
-						PartyMemberFrame_RefreshPetDebuffs(f)
-					end
-				end
-			end
-		)
-		local b = _G[f:GetName() .. "Debuff1"]
-		b:ClearAllPoints()
-		b:SetPoint("LEFT", f, "RIGHT", -7, 5)
-		for j = 5, 20 do
-			local l = f:GetName() .. "Debuff"
-			local n = l .. j
-			local c = CreateFrame("Frame", n, f, "PartyDebuffFrameTemplate")
-			c:SetPoint("LEFT", _G[l .. (j - 1)], "RIGHT")
-		end
-	
-		for i = 1, 4 do
-			local f = _G["PartyMemberFrame" .. i]
-			f:UnregisterEvent("UNIT_AURA")
-			local g = CreateFrame("Frame")
-			g:RegisterEvent("UNIT_AURA")
-			g:SetScript(
-				"OnEvent",
-				function(self, event, a1)
-					if a1 == f.unit then
-						RefreshBuffs(f, a1, 20, nil, 1)
-					end
-				end
-			)
-			for j = 1, 20 do
-				local l = f:GetName() .. "Buff"
-				local n = l .. j
-				local c = CreateFrame("Frame", n, f, "TargetBuffFrameTemplate")
-				c:EnableMouse(false)
-				if j == 1 then
-					c:SetPoint("TOPLEFT", 48, -32)
-				else
-					c:SetPoint("LEFT", _G[l .. (j - 1)], "RIGHT", 1, 0)
-				end
-			end
-		end
-	end
+    if TimeSinceLastUpdate >= ONUPDATE_INTERVAL then
+        TimeSinceLastUpdate = 0
+
+        -- Energy Tick
+        if time >= last_energy_tick + 2.02 then
+            last_energy_tick = time
+        end
+        SetTickValue(self:GetParent(), vEnergy, "energy")
+
+        -- Mana Tick
+        if time >= last_mana_tick + 2.02 and time >= manaRegenStartTime + 5 then
+            last_mana_tick = time
+        end
+        SetTickValue(self:GetParent(), vMana, "mana")
+    end
 end
 
+-- Function to update Energy
+local function UpdateEnergy()
+    local energy = UnitPower("player", 3)
+    local maxEnergy = UnitPowerMax("player", 3)
+    local time = GetTime()
+
+    if time - externalManaGainTimestamp < 0.02 then
+        externalManaGainTimestamp = 0
+        return
+    end
+
+    if ((energy == last_energy_value + 20 or energy == last_energy_value + 21 or 
+         energy == last_energy_value + 40 or energy == last_energy_value + 41) and energy ~= maxEnergy) then
+        last_energy_tick = time
+    end
+
+    last_energy_value = energy
+end
+
+-- Function to update Mana
+local function UpdateMana()
+    local mana = UnitPower("player", 0)
+    local maxMana = UnitPowerMax("player", 0)
+    local time = GetTime()
+
+    if time - externalManaGainTimestamp < 0.02 then
+        externalManaGainTimestamp = 0
+        return
+    end
+
+    if mana > last_mana_value then
+        last_mana_tick = time
+    end
+
+    last_mana_value = mana
+end
+
+-- Function to add Energy & Mana Tick Indicators
+local function AddTicks()
+    -- Energy
+    if not PlayerFrameManaBar.energy then
+        PlayerFrameManaBar.energy = CreateFrame("Statusbar", "PlayerFrameManaBar_energy", PlayerFrameManaBar)
+        PlayerFrameManaBar.energy.spark = PlayerFrameManaBar.energy:CreateTexture(nil, "OVERLAY")
+        PlayerFrameManaBar.energy.spark:SetTexture[[Interface\CastingBar\UI-CastingBar-Spark]]
+        PlayerFrameManaBar.energy.spark:SetSize(32, 32)
+        PlayerFrameManaBar.energy.spark:SetPoint("CENTER", PlayerFrameManaBar, 0, 0)
+        PlayerFrameManaBar.energy.spark:SetBlendMode("ADD")
+        PlayerFrameManaBar.energy.spark:SetAlpha(.4)
+    end
+
+    -- Mana
+    if not PlayerFrameManaBar.mana then
+        PlayerFrameManaBar.mana = CreateFrame("Statusbar", "PlayerFrameManaBar_mana", PlayerFrameManaBar)
+        PlayerFrameManaBar.mana.spark = PlayerFrameManaBar.mana:CreateTexture(nil, "OVERLAY")
+        PlayerFrameManaBar.mana.spark:SetTexture[[Interface\CastingBar\UI-CastingBar-Spark]]
+        PlayerFrameManaBar.mana.spark:SetSize(32, 32)
+        PlayerFrameManaBar.mana.spark:SetPoint("CENTER", PlayerFrameManaBar, 0, 0)
+        PlayerFrameManaBar.mana.spark:SetBlendMode("ADD")
+        PlayerFrameManaBar.mana.spark:SetAlpha(.4)
+    end
+
+    PlayerFrameManaBar.energy:RegisterUnitEvent("UNIT_POWER_UPDATE", "player")
+    PlayerFrameManaBar.mana:RegisterUnitEvent("UNIT_POWER_UPDATE", "player")
+
+    if not PlayerFrameManaBar.energy:GetScript("OnUpdate") then
+        PlayerFrameManaBar.energy:SetScript("OnUpdate", OnUpdate)
+    end
+end
+
+local function RealTick()
+    local _, eventType, _, _, _, sourceFlags, _, _, _, destFlags, _, spellID = CombatLogGetCurrentEventInfo()
+    if not (eventType == "SPELL_PERIODIC_ENERGIZE" or eventType == "SPELL_ENERGIZE") then return end
+
+    local isDestPlayer = CombatLog_Object_IsA(destFlags, COMBATLOG_FILTER_ME)
+    if isDestPlayer then
+        externalManaGainTimestamp = GetTime()
+    end
+end
+
+local function OnEvent(self, event, ...)
+    local _, class = UnitClass("player")
+    if not (Lorti.energytick and (class == "ROGUE" or class == "DRUID" or class == "MAGE" or class == "PRIEST" or class == "WARLOCK" or class == "HUNTER" or class == "SHAMAN" or class == "PALADIN")) then
+        self:UnregisterAllEvents()
+        self:SetScript("OnEvent", nil)
+        return
+    end
+
+    if event == "PLAYER_LOGIN" then
+        AddTicks()
+        self:UnregisterEvent("PLAYER_LOGIN")
+    elseif event == "PLAYER_REGEN_DISABLED" then
+        if PlayerFrameManaBar.energy then PlayerFrameManaBar.energy.spark:SetAlpha(1) end
+        if PlayerFrameManaBar.mana then PlayerFrameManaBar.mana.spark:SetAlpha(1) end
+    elseif event == "PLAYER_REGEN_ENABLED" then
+        if PlayerFrameManaBar.energy then PlayerFrameManaBar.energy.spark:SetAlpha(.4) end
+        if PlayerFrameManaBar.mana then PlayerFrameManaBar.mana.spark:SetAlpha(.4) end
+    elseif event == "UPDATE_SHAPESHIFT_FORM" and class == "DRUID" then
+        if PlayerFrameManaBar.energy and UnitPowerType("player") ~= 3 then
+            PlayerFrameManaBar.energy.spark:SetAlpha(0)
+        elseif PlayerFrameManaBar.energy then
+            PlayerFrameManaBar.energy.spark:SetAlpha(1)
+        end
+    elseif event == "UNIT_POWER_UPDATE" then
+        UpdateEnergy()
+        UpdateMana()
+    elseif event == "UNIT_SPELLCAST_STOP" or event == "UNIT_SPELLCAST_SUCCEEDED" then
+        manaRegenStartTime = GetTime()
+    elseif event == "COMBAT_LOG_EVENT_UNFILTERED" then
+        RealTick()
+    end
+end
+
+local e = CreateFrame("Frame")
+for _, v in pairs(events) do e:RegisterEvent(v) end
+e:SetScript("OnEvent", OnEvent)
+end
+
+end
+
+
+--[[
 if Lorti.raidbuff then
 -- This function updates the buffs for a given unit.
 function RefreshBuffs(parent, unit, maxBuffs, filter, showAll)
@@ -2011,10 +2211,8 @@ function RefreshBuffs(parent, unit, maxBuffs, filter, showAll)
             buff:Hide()
         end
     end
-end
-
-
--- Update Raid Buffs (this runs on each UNIT_AURA event for raid members)
+	
+	-- Update Raid Buffs (this runs on each UNIT_AURA event for raid members)
 local raidBuffUpdater = CreateFrame("Frame")
 raidBuffUpdater:RegisterEvent("UNIT_AURA")
 raidBuffUpdater:RegisterEvent("GROUP_ROSTER_UPDATE")  -- optionally update on roster changes
@@ -2038,6 +2236,10 @@ raidBuffUpdater:SetScript("OnEvent", function(self, event, unit)
   end
 end)
 end
+end
+]]
+
+
 	
 end)
 f:RegisterEvent("PLAYER_LOGIN")
