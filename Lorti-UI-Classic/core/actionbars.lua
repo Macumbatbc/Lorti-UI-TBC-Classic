@@ -125,7 +125,16 @@ local function styleActionButton(bu, color)
 
     	--hotkey
     	if not bartender4 then
-    	ho:SetFont(cfg.font, cfg.hotkeys.fontsize, "OUTLINE")
+		if (ho:GetText() ~= nil and string.byte(ho:GetText())) == 226 then
+		  ho:SetFont("Fonts\\ARIALN.ttf", cfg.hotkeys.fontsize, "OUTLINE")
+		  ho:SetShadowOffset(1,-1)
+		  ho:SetShadowColor(0,0,0)
+		else
+		  ho:SetFont(cfg.font, cfg.hotkeys.fontsize, "OUTLINE")
+		  ho:SetShadowOffset(1,-1)
+		  ho:SetShadowColor(0,0,0)
+		end
+    	-- ho:SetFont(cfg.font, cfg.hotkeys.fontsize, "OUTLINE")
     	ho:ClearAllPoints()
     	ho:SetPoint(cfg.hotkeys.pos1.a1,bu,cfg.hotkeys.pos1.x,cfg.hotkeys.pos1.y)
     	ho:SetPoint(cfg.hotkeys.pos2.a1,bu,cfg.hotkeys.pos2.x,cfg.hotkeys.pos2.y)
@@ -412,7 +421,7 @@ end
     --dominos styling
     if dominos then
       --print("Dominos found")
-      for i = 1, 60 do
+      for i = 1, 120 do
         styleActionButton(_G["DominosActionButton"..i])
       end
     end

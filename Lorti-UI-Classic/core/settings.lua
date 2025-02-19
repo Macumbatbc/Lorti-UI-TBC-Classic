@@ -1,8 +1,15 @@
+local LibStub = _G.LibStub
+local LibDD = LibStub:GetLibrary("LibUIDropDownMenu-4.0")
+
 local Name, ns = ...;
 local Title = select(2,GetAddOnInfo(Name)):gsub("%s*v?[%d%.]+$","");
 local cfg = ns.cfg
 
-Lorti = { keyhide, macrohide, stealth, switchtimer, gloss, bigbuff, thickness, classbars, ClassPortraits, energytick, raidbuff, ColoredHP, ActionbarTexture, hitindicator, playername, playerFrameIndex, LortiTextureIndex, fontIndex }
+local customFontPath = "Fonts\\FRIZQT__.TTF"
+local customFontSize = 12
+local customFontFlags = "OUTLINE"
+
+Lorti = { keyhide, macrohide, stealth, switchtimer, gloss, bigbuff, thickness, classbars, ClassPortraits, playerClassPortraits, classPortraitSet, playerClassPortraitSet, energytick, raidbuff, ColoredHP, ActionbarTexture, hitindicator, playername, playerFrameIndex, LortiTextureIndex, fontIndex, rangecolor, keypress, numerical, arenaframe, frameScale, partyFrameScale, fadeOutOfRange }
 
 local default = {
     keyhide = false,
@@ -15,6 +22,7 @@ local default = {
     classbars = false,
 	ColoredHP = false,
     ClassPortraits = false,
+	playerClassPortraits = true,
     energytick = false,
 	raidbuff = false,
     ActionbarTexture = false,
@@ -23,6 +31,15 @@ local default = {
     playerFrameIndex = 1,
 	LortiTextureIndex = 27,
 	fontIndex = 12,
+	classPortraitSet = 1,
+	playerClassPortraitSet = 1,
+	rangecolor = true,
+	keypress = false,
+	numerical = false,
+	arenaframe = false,
+	frameScale = 1.0,
+	partyFrameScale = 1.0,
+	fadeOutOfRange = true,
 }
 
 
@@ -41,6 +58,18 @@ raidFixFrame:SetScript("OnEvent", function()
     SBTexturesDo()
 end)
 
+local function UpdateClassPortraitDropdown()
+    if Lorti.ClassPortraits then
+        LibDD:UIDropDownMenu_EnableDropDown(classPortraitSelect)
+    else
+        LibDD:UIDropDownMenu_DisableDropDown(classPortraitSelect)
+    end
+	if Lorti.playerClassPortraits then
+		LibDD:UIDropDownMenu_EnableDropDown(playerClassPortraitSelect)
+    else
+        LibDD:UIDropDownMenu_DisableDropDown(playerClassPortraitSelect)
+    end
+end
 
 -- Function to create check buttons with tooltips
 local function CheckBtn(title, desc, panel, onClick)
@@ -99,17 +128,50 @@ function f:ADDON_LOADED()
 		Lorti.NumSize = 12
 	end
 	
+	if Lorti.frameScale == nil then
+		Lorti.frameScale = 1.0
+	end
+	
+	if Lorti.partyFrameScale == nil then
+		Lorti.partyFrameScale = 1.0
+	end
+	
+	if not Lorti.classPortraitSet then
+        Lorti.classPortraitSet = 1
+    end
+	if not Lorti.playerClassPortraitSet then
+        Lorti.playerClassPortraitSet = 1
+    end
     if not f.options then
         f.options = f:CreateGUI()
     end
+	
+	UpdateClassPortraitDropdown()
+	
     f:UnregisterEvent("ADDON_LOADED")
     f:SetScript("OnEvent", nil)
 	
+	
+	-- Apply saved scales
+    PlayerFrame:SetScale(Lorti.frameScale or 1.0)
+    TargetFrame:SetScale(Lorti.frameScale or 1.0)
+    FocusFrame:SetScale(Lorti.frameScale or 1.0)
+	ComboFrame:SetScale(Lorti.frameScale or 1.0)
+	
+	-- Apply party frame scale
+    for i = 1, 4 do
+        local frame = _G["PartyMemberFrame" .. i]
+        if frame then
+            frame:SetScale(Lorti.partyFrameScale or 1.0)
+        end
+    end
 	
 	if LortiDB then
         Lorti.playerFrameIndex = LortiDB.playerFrameIndex or 1
 		Lorti.LortiTextureIndex = LortiDB.LortiTextureIndex or 1
 		Lorti.fontIndex = LortiDB.fontIndex or 1
+		Lorti.classPortraitSet = LortiDB.classPortraitSet or 1
+		Lorti.playerClassPortraitSet = LortiDB.playerClassPortraitSet or 1
 		playerFrameDo()
 		SBTexturesDo()
 		fontStyleDo()
@@ -122,12 +184,17 @@ function f:ADDON_LOADED()
 	elseif Lorti.fontIndex == nil then
 		Lorti.fontIndex = 1
 		fontStyleDo()
+	elseif Lorti.classPortraitSet == nil then
+		Lorti.classPortraitSet = 1
+	elseif Lorti.playerClassPortraitSet == nil then
+		Lorti.playerClassPortraitSet = 1	
     else
         LortiDB = {}
 		playerFrameDo()
 		SBTexturesDo()
 		fontStyleDo()
     end
+	
 end
 
 --[[ local function SetButtonFont(button, fontPath, fontSize, fontFlags)
@@ -174,8 +241,6 @@ function f:CreateGUI()
 	HotKeyButton:SetChecked(Lorti.keyhide)	
 	-- SetButtonFont(HotKeyButton, "Fonts\\FRIZQT__.TTF", 14, "OUTLINE")
 	HotKeyButton.text:SetTextColor(1, 0.8, 0, 1)
-	
-    
 
     local StealthButton = CheckBtn("Stealth stance bar", "Disable stealth stance bar switching for rogues", Panel, function(self, value)
             Lorti.stealth = value
@@ -205,7 +270,7 @@ function f:CreateGUI()
 	GlossyButton:SetChecked(Lorti.gloss)
 	GlossyButton.text:SetTextColor(1, 0.8, 0, 1)
 	
-	local BigbuffButton = CheckBtn("Scale buffs and frames", "Change the scale of Player's BuffFrame/PartyFrames to 1.6, PlayerFrame/TargetFrame/FocusFrame to 1.3", Panel, function(self, value)
+	local BigbuffButton = CheckBtn("Scale buffs", "Change the size of Player's BuffFrame to 1.6", Panel, function(self, value)
             Lorti.bigbuff = value
         end)
     BigbuffButton:SetPoint("TOPLEFT", GlossyButton, "BOTTOMLEFT", 300, 27) 
@@ -235,6 +300,7 @@ function f:CreateGUI()
 	
 	local ClassPortraitsButton = CheckBtn("Class Portraits", "Enable Class Portraits on Target and Focus Frames", Panel, function(self, value)
             Lorti.ClassPortraits = value
+			UpdateClassPortraitDropdown()
         end)
     ClassPortraitsButton:SetPoint("TOPLEFT", ColoredHPButton, "BOTTOMLEFT", 300, 27)
 	ClassPortraitsButton:SetChecked(Lorti.ClassPortraits)
@@ -247,28 +313,74 @@ function f:CreateGUI()
 	HitindicatorButton:SetChecked(Lorti.hitindicator)
 	HitindicatorButton.text:SetTextColor(1, 0.8, 0, 1)
 	
+	local PlayerClassPortraitsButton = CheckBtn("Player Class Portrait", "Enable Class Portrait for the Player Frame only", Panel, function(self, value)
+            Lorti.playerClassPortraits = value
+			UpdateClassPortraitDropdown()
+        end)
+    PlayerClassPortraitsButton:SetPoint("TOPLEFT", HitindicatorButton, "BOTTOMLEFT", 300, 27)
+	PlayerClassPortraitsButton:SetChecked(Lorti.playerClassPortraits)
+	PlayerClassPortraitsButton.text:SetTextColor(1, 0.8, 0, 1)
+	
 	 local ActionbarTextureButton = CheckBtn("Hide background", "Hide gryphons and actionbar, menu, bags background", Panel, function(self, value)
             Lorti.ActionbarTexture = value
         end)
-    ActionbarTextureButton:SetPoint("TOPLEFT", HitindicatorButton, "BOTTOMLEFT", 300, 27)
+    ActionbarTextureButton:SetPoint("TOPLEFT", PlayerClassPortraitsButton, "BOTTOMLEFT", -300, 0)
 	ActionbarTextureButton:SetChecked(Lorti.ActionbarTexture)
 	ActionbarTextureButton.text:SetTextColor(1, 0.8, 0, 1)
 	
 	local EnergyButton = CheckBtn("Energy/Mana ticks", "Enable Energy and/or Mana ticks or both if you are a druid", Panel, function(self, value)
             Lorti.energytick = value
         end)
-    EnergyButton:SetPoint("TOPLEFT", ActionbarTextureButton, "BOTTOMLEFT", -300, 0)
+    EnergyButton:SetPoint("TOPLEFT", ActionbarTextureButton, "BOTTOMLEFT", 300, 27)
 	EnergyButton:SetChecked(Lorti.energytick)
 	EnergyButton.text:SetTextColor(1, 0.8, 0, 1)
 	
 	local PlayernameButton = CheckBtn("Hide player name", "Hide the name of the Player unit frame", Panel, function(self, value)
             Lorti.playername = value
         end)
-    PlayernameButton:SetPoint("TOPLEFT", EnergyButton, "BOTTOMLEFT", 300, 27)
+    PlayernameButton:SetPoint("TOPLEFT", EnergyButton, "BOTTOMLEFT", -300, 0)
 	PlayernameButton:SetChecked(Lorti.playername)
 	PlayernameButton.text:SetTextColor(1, 0.8, 0, 1)
 	
-	--[[ local RaidBuffButton = CheckBtn("Raid Buffs", "Show all Buffs on Raid Frames, not only yours (Disable Party Buffs option to avoid conflict!)", Panel, function(self, value)
+	local RangecolorButton = CheckBtn("Range Color", "Color your action buttons when out of range or out of mana", Panel, function(self, value)
+            Lorti.rangecolor = value
+        end)
+    RangecolorButton:SetPoint("TOPLEFT", PlayernameButton, "BOTTOMLEFT", 300, 27)
+	RangecolorButton:SetChecked(Lorti.rangecolor)
+	RangecolorButton.text:SetTextColor(1, 0.8, 0, 1)
+	
+	
+	local KeypressButton = CheckBtn("Cast spells on key down", "Enable cast spells when you press on your keyboard instead of when you release it, like the addon SnowFallKey", Panel, function(self, value)
+            Lorti.keypress = value
+        end)
+    KeypressButton:SetPoint("TOPLEFT", RangecolorButton, "BOTTOMLEFT", -300, 0)
+	KeypressButton:SetChecked(Lorti.keypress)
+	KeypressButton.text:SetTextColor(1, 0.8, 0, 1)
+	
+	local NumericalButton = CheckBtn("Shorten numeric value", "Display current health instead of current health/max health, and shorten NUMERIC HP to one decimal", Panel, function(self, value)
+            Lorti.numerical = value
+        end)
+    NumericalButton:SetPoint("TOPLEFT", KeypressButton, "BOTTOMLEFT", 300, 27)
+	NumericalButton:SetChecked(Lorti.numerical)
+	NumericalButton.text:SetTextColor(1, 0.8, 0, 1)
+	
+	local ArenaframeButton = CheckBtn("Remove Arena Frames", "Remove default arena frames in arena", Panel, function(self, value)
+            Lorti.arenaframe = value
+        end)
+    ArenaframeButton:SetPoint("TOPLEFT", NumericalButton, "BOTTOMLEFT", -300, 0)
+	ArenaframeButton:SetChecked(Lorti.arenaframe)
+	ArenaframeButton.text:SetTextColor(1, 0.8, 0, 1)
+	
+	
+	
+	--[[ local SmoothButton = CheckBtn("Smooth health/mana bars", "Enable smooth animated health and mana bars", Panel, function(self, value)
+            Lorti.smooth = value
+        end)
+    SmoothButton:SetPoint("TOPLEFT", PlayernameButton, "BOTTOMLEFT", -300, 0)
+	SmoothButton:SetChecked(Lorti.smooth)
+	SmoothButton.text:SetTextColor(1, 0.8, 0, 1)
+	
+	 local RaidBuffButton = CheckBtn("Raid Buffs", "Show all Buffs on Raid Frames, not only yours (Disable Party Buffs option to avoid conflict!)", Panel, function(self, value)
             Lorti.raidbuff = value
         end)
     RaidBuffButton:SetPoint("TOPLEFT", PlayernameButton, "BOTTOMLEFT", -300, 0)
@@ -277,16 +389,16 @@ function f:CreateGUI()
 	
 	
 	local Separator = Panel:CreateTexture(nil, "BACKGROUND")
-	Separator:SetSize(500, 1) -- Width of the panel, height of 1 pixel
-	Separator:SetPoint("TOPLEFT", EnergyButton, "BOTTOMLEFT", 10, -10)
-	Separator:SetColorTexture(0.3, 0.3, 0.3, 1) -- Gray color for the line
+	Separator:SetSize(500, 1) 
+	Separator:SetPoint("TOPLEFT", ArenaframeButton, "BOTTOMLEFT", 10, -10)
+	Separator:SetColorTexture(0.3, 0.3, 0.3, 1) 
 	
 	-- Player Frame Selector Title
     local playerFrameTitle = Panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     playerFrameTitle:SetPoint("TOPLEFT", Separator, "BOTTOMLEFT", 30, -10) 
     playerFrameTitle:SetText("Player Frame Style:")
 	
-	CreateFrame("Button", "playerFrameSelect", Panel, "UIDropDownMenuTemplate")
+	local playerFrameSelect = LibDD:Create_UIDropDownMenu("playerFrameSelect", Panel)
 	playerFrameSelect:ClearAllPoints()
 	playerFrameSelect:SetPoint("TOPLEFT", playerFrameTitle, "BOTTOMLEFT", -40, -10) 
 
@@ -295,33 +407,34 @@ function f:CreateGUI()
 		"Elite",
 		"Rare",
 		"Rare Elite",
+		"Boss",
 	}
 
 	local function OnClick(self)
-		UIDropDownMenu_SetSelectedID(playerFrameSelect, self:GetID())
+		LibDD:UIDropDownMenu_SetSelectedID(playerFrameSelect, self:GetID())
         Lorti.playerFrameIndex = self:GetID()
         LortiDB.playerFrameIndex = Lorti.playerFrameIndex
         playerFrameDo(self)
 	end
 	local function initialize(self, level)
-		local info = UIDropDownMenu_CreateInfo()
+		local info = LibDD:UIDropDownMenu_CreateInfo()
 		for k,v in pairs(playerFrameList) do
-			info = UIDropDownMenu_CreateInfo()
+			info = LibDD:UIDropDownMenu_CreateInfo()
 			info.text = v
 			info.value = k
 			info.func = OnClick
-			UIDropDownMenu_AddButton(info, level)
+			LibDD:UIDropDownMenu_AddButton(info, level)
 		end
 	end
-	UIDropDownMenu_Initialize(playerFrameSelect, initialize)
-	UIDropDownMenu_SetWidth(playerFrameSelect, 150);
-	UIDropDownMenu_SetButtonWidth(playerFrameSelect, 170)
-	UIDropDownMenu_JustifyText(playerFrameSelect, "LEFT")
+	LibDD:UIDropDownMenu_Initialize(playerFrameSelect, initialize)
+	LibDD:UIDropDownMenu_SetWidth(playerFrameSelect, 150);
+	LibDD:UIDropDownMenu_SetButtonWidth(playerFrameSelect, 170)
+	LibDD:UIDropDownMenu_JustifyText(playerFrameSelect, "LEFT")
 	-- Set the default selection based on saved variables
 		if Lorti.playerFrameIndex then
-			UIDropDownMenu_SetSelectedID(playerFrameSelect, Lorti.playerFrameIndex)
+			LibDD:UIDropDownMenu_SetSelectedID(playerFrameSelect, Lorti.playerFrameIndex)
 		else
-			UIDropDownMenu_SetSelectedID(playerFrameSelect, 1)
+			LibDD:UIDropDownMenu_SetSelectedID(playerFrameSelect, 1)
 		end
 	
 	
@@ -331,7 +444,7 @@ function f:CreateGUI()
 	fontLabel:SetText("Font select:")
 
 	-- Create the dropdown menu for fonts.
-	CreateFrame("Button", "fontSelector", Panel, "UIDropDownMenuTemplate")
+	local fontSelector = LibDD:Create_UIDropDownMenu("fontSelector", Panel)
 	fontSelector:ClearAllPoints()
 	fontSelector:SetPoint("TOPLEFT", fontLabel, "BOTTOMLEFT", -40, -10)
 
@@ -361,7 +474,7 @@ function f:CreateGUI()
 		}
 
 	local function OnFontClick(self)
-		UIDropDownMenu_SetSelectedID(fontSelector, self:GetID())
+		LibDD:UIDropDownMenu_SetSelectedID(fontSelector, self:GetID())
 		Lorti.fontIndex = self:GetID()
 		LortiDB.fontIndex = Lorti.fontIndex
 	
@@ -414,26 +527,26 @@ function f:CreateGUI()
 	end
 
 	local function FontInitialize(self, level)
-    local selectedID = UIDropDownMenu_GetSelectedID(fontSelector) or 1
-    for k, v in ipairs(fontList) do
-        local info = UIDropDownMenu_CreateInfo()
-        info.text = v
-        info.value = k
-        info.func = OnFontClick
-        info.checked = (k == selectedID)  -- Only the button with index equal to the selected ID is checked
-        UIDropDownMenu_AddButton(info, level)
-    end
-end
-
-
-	UIDropDownMenu_Initialize(fontSelector, FontInitialize)
-	UIDropDownMenu_SetWidth(fontSelector, 100)
-	UIDropDownMenu_JustifyText(fontSelector, "LEFT")
-	UIDropDownMenu_SetButtonWidth(fontSelector, 124)
-	if not UIDropDownMenu_GetSelectedID(fontSelector) then
-		UIDropDownMenu_SetSelectedID(fontSelector, 1)
+		local selectedID = LibDD:UIDropDownMenu_GetSelectedID(fontSelector) or 1
+		for k, v in ipairs(fontList) do
+			local info = LibDD:UIDropDownMenu_CreateInfo()
+			info.text = v
+			info.value = k
+			info.func = OnFontClick
+			info.checked = (k == selectedID)  -- Only the button with index equal to the selected ID is checked
+			LibDD:UIDropDownMenu_AddButton(info, level)
+		end
 	end
-	UIDropDownMenu_SetSelectedID(fontSelector, Lorti.fontIndex or 1)
+
+
+	LibDD:UIDropDownMenu_Initialize(fontSelector, FontInitialize)
+	LibDD:UIDropDownMenu_SetWidth(fontSelector, 100)
+	LibDD:UIDropDownMenu_JustifyText(fontSelector, "LEFT")
+	LibDD:UIDropDownMenu_SetButtonWidth(fontSelector, 124)
+	if not LibDD:UIDropDownMenu_GetSelectedID(fontSelector) then
+		LibDD:UIDropDownMenu_SetSelectedID(fontSelector, 1)
+	end
+	LibDD:UIDropDownMenu_SetSelectedID(fontSelector, Lorti.fontIndex or 1)
 
 	
 	-- Status Bar Texture Selector Title
@@ -442,7 +555,7 @@ end
 	statusBarTitle:SetText("Status Bar Texture:")
 
 	-- Create the dropdown menu
-	CreateFrame("Button", "statusBarSelect", Panel, "UIDropDownMenuTemplate")
+	local statusBarSelect = LibDD:Create_UIDropDownMenu("statusBarSelect", Panel)
 	statusBarSelect:ClearAllPoints()
 	statusBarSelect:SetPoint("TOPLEFT", statusBarTitle, "BOTTOMLEFT", -40, -10)
 
@@ -477,92 +590,197 @@ end
 	}
 
 	local function OnClick(self)
-    UIDropDownMenu_SetSelectedID(statusBarSelect, self:GetID())
-    Lorti.LortiTextureIndex = self:GetID()
-    LortiDB.LortiTextureIndex = Lorti.LortiTextureIndex
+		LibDD:UIDropDownMenu_SetSelectedID(statusBarSelect, self:GetID())
+		Lorti.LortiTextureIndex = self:GetID()
+		LortiDB.LortiTextureIndex = Lorti.LortiTextureIndex
 
-    if Lorti.LortiTextureIndex == 1 then
-        Lorti.SBTextureName = "whoa";
-    elseif Lorti.LortiTextureIndex == 2 then
-        Lorti.SBTextureName = "blizzard";
-    elseif Lorti.LortiTextureIndex == 3 then
-        Lorti.SBTextureName = "65";
-    elseif Lorti.LortiTextureIndex == 4 then
-        Lorti.SBTextureName = "ace";
-    elseif Lorti.LortiTextureIndex == 5 then
-        Lorti.SBTextureName = "aluminium";
-    elseif Lorti.LortiTextureIndex == 6 then
-        Lorti.SBTextureName = "banto";
-    elseif Lorti.LortiTextureIndex == 7 then
-        Lorti.SBTextureName = "cracked";
-    elseif Lorti.LortiTextureIndex == 8 then
-        Lorti.SBTextureName = "glaze";
-    elseif Lorti.LortiTextureIndex == 9 then
-        Lorti.SBTextureName = "liteStep";
-    elseif Lorti.LortiTextureIndex == 10 then
-        Lorti.SBTextureName = "metal";
-    elseif Lorti.LortiTextureIndex == 11 then
-        Lorti.SBTextureName = "neon";
-    elseif Lorti.LortiTextureIndex == 12 then
-        Lorti.SBTextureName = "otravi";
-    elseif Lorti.LortiTextureIndex == 13 then
-        Lorti.SBTextureName = "perl";
-    elseif Lorti.LortiTextureIndex == 14 then
-        Lorti.SBTextureName = "shiny";
-    elseif Lorti.LortiTextureIndex == 15 then
-        Lorti.SBTextureName = "smooth";
-    elseif Lorti.LortiTextureIndex == 16 then
-        Lorti.SBTextureName = "striped";
-    elseif Lorti.LortiTextureIndex == 17 then
-        Lorti.SBTextureName = "swag";
-	elseif Lorti.LortiTextureIndex == 18 then
-		Lorti.SBTextureName = "flat";
-	elseif Lorti.LortiTextureIndex == 19 then
-		Lorti.SBTextureName = "elvui";
-	elseif Lorti.LortiTextureIndex == 20 then
-		Lorti.SBTextureName = "gradient";
-	elseif Lorti.LortiTextureIndex == 21 then
-		Lorti.SBTextureName = "tukui";
-	elseif Lorti.LortiTextureIndex == 22 then
-		Lorti.SBTextureName = "blinkii";
-	elseif Lorti.LortiTextureIndex == 23 then
-		Lorti.SBTextureName = "kuinameplate";
-	elseif Lorti.LortiTextureIndex == 24 then
-		Lorti.SBTextureName = "smoothv2";
-	elseif Lorti.LortiTextureIndex == 25 then
-		Lorti.SBTextureName = "ToxiUI-dark";
-	elseif Lorti.LortiTextureIndex == 26 then
-		Lorti.SBTextureName = "Wglass";
-	elseif Lorti.LortiTextureIndex == 27 then
-		Lorti.SBTextureName = "flat2";
-    end
+		if Lorti.LortiTextureIndex == 1 then
+			Lorti.SBTextureName = "whoa";
+		elseif Lorti.LortiTextureIndex == 2 then
+			Lorti.SBTextureName = "blizzard";
+		elseif Lorti.LortiTextureIndex == 3 then
+			Lorti.SBTextureName = "65";
+		elseif Lorti.LortiTextureIndex == 4 then
+			Lorti.SBTextureName = "ace";
+		elseif Lorti.LortiTextureIndex == 5 then
+			Lorti.SBTextureName = "aluminium";
+		elseif Lorti.LortiTextureIndex == 6 then
+			Lorti.SBTextureName = "banto";
+		elseif Lorti.LortiTextureIndex == 7 then
+			Lorti.SBTextureName = "cracked";
+		elseif Lorti.LortiTextureIndex == 8 then
+			Lorti.SBTextureName = "glaze";
+		elseif Lorti.LortiTextureIndex == 9 then
+			Lorti.SBTextureName = "liteStep";
+		elseif Lorti.LortiTextureIndex == 10 then
+			Lorti.SBTextureName = "metal";
+		elseif Lorti.LortiTextureIndex == 11 then
+			Lorti.SBTextureName = "neon";
+		elseif Lorti.LortiTextureIndex == 12 then
+			Lorti.SBTextureName = "otravi";
+		elseif Lorti.LortiTextureIndex == 13 then
+			Lorti.SBTextureName = "perl";
+		elseif Lorti.LortiTextureIndex == 14 then
+			Lorti.SBTextureName = "shiny";
+		elseif Lorti.LortiTextureIndex == 15 then
+			Lorti.SBTextureName = "smooth";
+		elseif Lorti.LortiTextureIndex == 16 then
+			Lorti.SBTextureName = "striped";
+		elseif Lorti.LortiTextureIndex == 17 then
+			Lorti.SBTextureName = "swag";
+		elseif Lorti.LortiTextureIndex == 18 then
+			Lorti.SBTextureName = "flat";
+		elseif Lorti.LortiTextureIndex == 19 then
+			Lorti.SBTextureName = "elvui";
+		elseif Lorti.LortiTextureIndex == 20 then
+			Lorti.SBTextureName = "gradient";
+		elseif Lorti.LortiTextureIndex == 21 then
+			Lorti.SBTextureName = "tukui";
+		elseif Lorti.LortiTextureIndex == 22 then
+			Lorti.SBTextureName = "blinkii";
+		elseif Lorti.LortiTextureIndex == 23 then
+			Lorti.SBTextureName = "kuinameplate";
+		elseif Lorti.LortiTextureIndex == 24 then
+			Lorti.SBTextureName = "smoothv2";
+		elseif Lorti.LortiTextureIndex == 25 then
+			Lorti.SBTextureName = "ToxiUI-dark";
+		elseif Lorti.LortiTextureIndex == 26 then
+			Lorti.SBTextureName = "Wglass";
+		elseif Lorti.LortiTextureIndex == 27 then
+			Lorti.SBTextureName = "flat2";
+		end
 
-    SBTexturesDo(self)
-end
-	local function initialize(self, level)
-    local info = UIDropDownMenu_CreateInfo()
-    for k, v in pairs(statusBarTextures) do
-        info = UIDropDownMenu_CreateInfo()
-        info.text = v
-        info.value = k
-        info.func = OnClick
-        UIDropDownMenu_AddButton(info, level)
-    end
+		SBTexturesDo(self)
+	end
 	
-end
+	local function initialize(self, level)
+		local info = LibDD:UIDropDownMenu_CreateInfo()
+		for k, v in pairs(statusBarTextures) do
+			info = LibDD:UIDropDownMenu_CreateInfo()
+			info.text = v
+			info.value = k
+			info.func = OnClick
+			LibDD:UIDropDownMenu_AddButton(info, level)
+		end
+	end
 
-	UIDropDownMenu_Initialize(statusBarSelect, initialize)
-	UIDropDownMenu_SetWidth(statusBarSelect, 150)
-	UIDropDownMenu_SetButtonWidth(statusBarSelect, 170)
-	UIDropDownMenu_JustifyText(statusBarSelect, "LEFT")
+	LibDD:UIDropDownMenu_Initialize(statusBarSelect, initialize)
+	LibDD:UIDropDownMenu_SetWidth(statusBarSelect, 150)
+	LibDD:UIDropDownMenu_SetButtonWidth(statusBarSelect, 170)
+	LibDD:UIDropDownMenu_JustifyText(statusBarSelect, "LEFT")
 
 	-- Set the default selection based on saved variables
 	if Lorti.LortiTextureIndex then
-		UIDropDownMenu_SetSelectedID(statusBarSelect, Lorti.LortiTextureIndex)
+		LibDD:UIDropDownMenu_SetSelectedID(statusBarSelect, Lorti.LortiTextureIndex)
 	else
-		UIDropDownMenu_SetSelectedID(statusBarSelect, 1)
+		LibDD:UIDropDownMenu_SetSelectedID(statusBarSelect, 1)
 	end
 	
+	
+	-- Class Portrait Selector Title
+	local classPortraitTitle = Panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	classPortraitTitle:SetPoint("TOPLEFT", ArenaframeButton, "BOTTOMLEFT", 300, 27)
+	classPortraitTitle:SetText("Target/Focus/Party Class Portrait texture:")
+
+	-- Create the dropdown menu
+	local classPortraitSelect = LibDD:Create_UIDropDownMenu("classPortraitSelect", Panel)
+	classPortraitSelect:ClearAllPoints()
+	classPortraitSelect:SetPoint("TOPLEFT", classPortraitTitle, "BOTTOMLEFT", -40, -10)
+
+	-- List of available class portrait sets
+	local classPortraitSets = {
+		"High Definition",
+		"RougeUI",
+		"Modern",
+		"KkthnxUI",
+		"Hearthstone",
+		"ElvUI",
+		"Experimental",
+		"JiberishUI",
+	}
+
+	-- Function to handle selection
+	local function OnClassPortraitClick(self)
+		LibDD:UIDropDownMenu_SetSelectedID(classPortraitSelect, self:GetID())
+		Lorti.classPortraitSet = self:GetID()
+		LortiDB.classPortraitSet = Lorti.classPortraitSet
+
+		-- Refresh class portraits with the new set
+		hooksecurefunc("UnitFramePortrait_Update", ns.ApplyClassPortraits)
+		ns.ApplyClassPortraits() -- Call without arguments
+	end
+
+	-- Initialize the dropdown menu
+	local function ClassPortraitInitialize(self, level)
+		local selectedID = LibDD:UIDropDownMenu_GetSelectedID(classPortraitSelect) or 1
+		for k, v in ipairs(classPortraitSets) do
+			local info = LibDD:UIDropDownMenu_CreateInfo()
+			info.text = v
+			info.value = k
+			info.func = OnClassPortraitClick
+			info.checked = (k == selectedID) -- Highlight the currently selected item
+			LibDD:UIDropDownMenu_AddButton(info, level)
+		end
+	end
+
+	LibDD:UIDropDownMenu_Initialize(classPortraitSelect, ClassPortraitInitialize)
+	LibDD:UIDropDownMenu_SetWidth(classPortraitSelect, 150)
+	LibDD:UIDropDownMenu_SetButtonWidth(classPortraitSelect, 170)
+	LibDD:UIDropDownMenu_JustifyText(classPortraitSelect, "LEFT")
+	
+	-- Set the default selection based on saved variables
+	if Lorti.classPortraitSet then
+		LibDD:UIDropDownMenu_SetSelectedID(classPortraitSelect, Lorti.classPortraitSet)
+	else
+		LibDD:UIDropDownMenu_SetSelectedID(classPortraitSelect, 1)
+	end
+	
+	-- Player Class Portrait Selector Title
+	local playerClassPortraitTitle = Panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	playerClassPortraitTitle:SetPoint("TOPLEFT", classPortraitSelect, "BOTTOMLEFT", 40, -20)
+	playerClassPortraitTitle:SetText("Player Class Portrait texture:")
+
+	-- Create the dropdown menu for Player
+	local playerClassPortraitSelect = LibDD:Create_UIDropDownMenu("playerClassPortraitSelect", Panel)
+	playerClassPortraitSelect:ClearAllPoints()
+	playerClassPortraitSelect:SetPoint("TOPLEFT", playerClassPortraitTitle, "BOTTOMLEFT", -40, -10)
+
+	-- Function to handle selection for Player
+	local function OnPlayerClassPortraitClick(self)
+		LibDD:UIDropDownMenu_SetSelectedID(playerClassPortraitSelect, self:GetID())
+		Lorti.playerClassPortraitSet = self:GetID()
+		LortiDB.playerClassPortraitSet = Lorti.playerClassPortraitSet
+
+		-- Refresh class portraits with the new set
+		hooksecurefunc("UnitFramePortrait_Update", ns.ApplyClassPortraits)
+		ns.ApplyClassPortraits() -- Call without arguments
+	end
+
+	-- Initialize the dropdown menu for Player
+	local function PlayerClassPortraitInitialize(self, level)
+		local selectedID = LibDD:UIDropDownMenu_GetSelectedID(playerClassPortraitSelect) or 1
+		for k, v in ipairs(classPortraitSets) do
+			local info = LibDD:UIDropDownMenu_CreateInfo()
+			info.text = v
+			info.value = k
+			info.func = OnPlayerClassPortraitClick
+			info.checked = (k == selectedID) -- Highlight the currently selected item
+			LibDD:UIDropDownMenu_AddButton(info, level)
+		end
+	end
+
+	LibDD:UIDropDownMenu_Initialize(playerClassPortraitSelect, PlayerClassPortraitInitialize)
+	LibDD:UIDropDownMenu_SetWidth(playerClassPortraitSelect, 150)
+	LibDD:UIDropDownMenu_SetButtonWidth(playerClassPortraitSelect, 170)
+	LibDD:UIDropDownMenu_JustifyText(playerClassPortraitSelect, "LEFT")
+
+	-- Set the default selection based on saved variables
+	if Lorti.playerClassPortraitSet then
+		LibDD:UIDropDownMenu_SetSelectedID(playerClassPortraitSelect, Lorti.playerClassPortraitSet)
+	else
+		LibDD:UIDropDownMenu_SetSelectedID(playerClassPortraitSelect, 1)
+	end
+
 	-- Name Size
 	local StringSizeTitle = Panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
 	StringSizeTitle:SetPoint("TOPLEFT", playerFrameSelect, "BOTTOMLEFT", 70, -15)
@@ -621,7 +839,7 @@ end
 		local positionOptions = Panel:CreateFontString("mainOptions", "OVERLAY", "GameFontNormal")
 		positionOptions:SetFont("Fonts\\FRIZQT__.TTF", 14, "OUTLINE")
 		positionOptions:SetText("Positioning options:")
-		positionOptions:SetPoint("TOPLEFT", Separator, "BOTTOMLEFT", 150, -160)
+		positionOptions:SetPoint("TOPLEFT", StringSizeTitle, "BOTTOMLEFT", 0, -82)
 
 		-- Create a font string for additional info.
 		local centerBttnInfo = Panel:CreateFontString("centerBttnInfo", "OVERLAY", "GameFontNormal")
@@ -653,7 +871,60 @@ end
 		TargetFrame_ResetUserPlacedPosition()
 		end)
 
+		
+		-- Player/Target/Focus Frame Scale Slider
+    local FrameScaleTitle = Panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    FrameScaleTitle:SetPoint("TOPLEFT", StringSizeTitle, "BOTTOMLEFT", 0, -40)
+    FrameScaleTitle:SetText("Player/Target/Focus Frame Scale:")
+
+    local FrameScaleSlider = CreateFrame("Slider", "FrameScaleSlider", Panel, "OptionsSliderTemplate")
+    FrameScaleSlider:SetPoint("TOPLEFT", FrameScaleTitle, "BOTTOMLEFT", -10, -17)
+    FrameScaleSlider.textLow = _G["FrameScaleSliderLow"]
+    FrameScaleSlider.textHigh = _G["FrameScaleSliderHigh"]
+    FrameScaleSlider.text = _G["FrameScaleSliderText"]
+    FrameScaleSlider:SetMinMaxValues(0.5, 2.0)
+    FrameScaleSlider:SetValueStep(0.05)
+    FrameScaleSlider:SetObeyStepOnDrag(true)
+    FrameScaleSlider:SetValue(Lorti.frameScale or 1.0)
+    FrameScaleSlider.textLow:SetText("0.5x")
+    FrameScaleSlider.textHigh:SetText("2.0x")
+    FrameScaleSlider.text:SetText("Scale: " .. string.format("%.2f", FrameScaleSlider:GetValue()))
+    FrameScaleSlider:SetScript("OnValueChanged", function(self, value)
+        self.text:SetText("Scale: " .. string.format("%.2f", value))
+        Lorti.frameScale = value
+        PlayerFrame:SetScale(value)
+        TargetFrame:SetScale(value)
+        FocusFrame:SetScale(value)
+    end)
 	
+	
+	-- Party Frame Scale Slider
+    local PartyFrameScaleTitle = Panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    PartyFrameScaleTitle:SetPoint("TOPLEFT", FrameScaleTitle, "BOTTOMLEFT", 200, 10)
+    PartyFrameScaleTitle:SetText("Party Frames Scale:")
+
+    local PartyFrameScaleSlider = CreateFrame("Slider", "PartyFrameScaleSlider", Panel, "OptionsSliderTemplate")
+    PartyFrameScaleSlider:SetPoint("TOPLEFT", PartyFrameScaleTitle, "BOTTOMLEFT", -10, -17)
+    PartyFrameScaleSlider.textLow = _G["PartyFrameScaleSliderLow"]
+    PartyFrameScaleSlider.textHigh = _G["PartyFrameScaleSliderHigh"]
+    PartyFrameScaleSlider.text = _G["PartyFrameScaleSliderText"]
+    PartyFrameScaleSlider:SetMinMaxValues(0.5, 2.0)
+    PartyFrameScaleSlider:SetValueStep(0.05)
+    PartyFrameScaleSlider:SetObeyStepOnDrag(true)
+    PartyFrameScaleSlider:SetValue(Lorti.partyFrameScale or 1.0)
+    PartyFrameScaleSlider.textLow:SetText("0.5x")
+    PartyFrameScaleSlider.textHigh:SetText("2.0x")
+    PartyFrameScaleSlider.text:SetText("Scale: " .. string.format("%.2f", PartyFrameScaleSlider:GetValue()))
+    PartyFrameScaleSlider:SetScript("OnValueChanged", function(self, value)
+        self.text:SetText("Scale: " .. string.format("%.2f", value))
+        Lorti.partyFrameScale = value
+        for i = 1, 4 do
+            local frame = _G["PartyMemberFrame" .. i]
+            if frame then
+                frame:SetScale(value)
+            end
+        end
+    end)
 	end
 	return Panel
 end
@@ -663,11 +934,13 @@ function playerFrameDo()
 	if Lorti.playerFrameIndex == 1 then
 		frameType = "UI-TargetingFrame";
 	elseif Lorti.playerFrameIndex == 2 then
-		frameType = "Elite"
+		frameType = "elite"
 	elseif Lorti.playerFrameIndex == 3 then
-		frameType = "Rare"
+		frameType = "rare"
 	elseif Lorti.playerFrameIndex == 4 then
-		frameType = "Rare-Elite"
+		frameType = "rare-Elite"
+	elseif Lorti.playerFrameIndex == 5 then
+		frameType = "Boss"
 	else
 		frameType = "UI-TargetingFrame";
 	end
@@ -795,9 +1068,8 @@ function fontStyleDo()
     end
 	
 	if CompactRaidFrameContainer_Update then
-    hooksecurefunc("CompactRaidFrameContainer_Update", function()
-        fontStyleDo()
-    end)
+		hooksecurefunc("CompactRaidFrameContainer_Update", function()
+			fontStyleDo()
+		end)
+	end
 end
-end
-

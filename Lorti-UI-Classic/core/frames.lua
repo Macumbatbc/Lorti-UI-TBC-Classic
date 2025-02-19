@@ -456,7 +456,11 @@ for i,v in pairs({
       	LootFrameInsetBg,
       	LootFrameTitleBg,	
 	MerchantFrameTitleBg,
-
+	ArenaEnemyFrame1Texture,
+	ArenaEnemyFrame2Texture,
+	ArenaEnemyFrame3Texture,
+	ArenaEnemyFrame4Texture,
+	ArenaEnemyFrame5Texture,
 }) do
    v:SetVertexColor(.05, .05, .05)
 end
@@ -1127,6 +1131,8 @@ PetFrameManaBar.TextString:AdjustPointsOffset(0,4)
 PetFrameManaBar.LeftText:AdjustPointsOffset(0,4)
 PetFrameManaBar.RightText:AdjustPointsOffset(0,4)
 
+
+	
 --Target of Target And Pet Frame Alignments
 
 TargetFrameToTBackground:AdjustPointsOffset(2,2)
@@ -1138,6 +1144,11 @@ FocusFrameToTPortrait:AdjustPointsOffset(-3,3)
 PetFrameHealthBar:AdjustPointsOffset(-1,-1)
 PetFrameManaBar:AdjustPointsOffset(-1,-1)
 
+if ArenaEnemyFrame1 then
+ArenaEnemyFrame1HealthBarText:SetShadowOffset(1,-1)
+ArenaEnemyFrame1HealthBarText:SetShadowColor(0,0,0)
+end
+	
 --Minimap Alignment & Hiding World Map Button and Top Border
 
 MiniMapWorldMapButton:SetAlpha(0)
@@ -1154,8 +1165,13 @@ GameTooltipStatusBar:SetSize(1,2)
 -- Reputation and XP bar hack to make it always shown
 
 SetCVar("xpBarText", 1)
+
+-- Show party pet
 SetCVar("showPartyPets", 1)
 
+-- Personal CVar
+SetCVar("namenameplateSelectedScale", 1.15)
+SetCVar("namenameplateGlobalScale", 1.1)
 
 
 
@@ -1223,13 +1239,46 @@ local function CreatePartyDeadTexts()
 
             
             deadText:SetParent(UIParent)
-			if Lorti.bigbuff then
-				deadText:SetPoint("CENTER", frame, "CENTER", 30, 12)
-				deadText:SetFont(Lorti.fontFamily, Lorti.StringSize, "OUTLINE")
-			else
-				deadText:SetPoint("CENTER", frame, "CENTER", 18, 9)
-				deadText:SetFont(Lorti.fontFamily, Lorti.StringSize-3, "OUTLINE")
-			end
+			local scale = Lorti.partyFrameScale or 1.0
+
+            -- Determine the position and font size based on the scale.
+			if scale >= 2.0 then
+                -- Very large scale (>= 2.0)
+                deadText:SetPoint("CENTER", frame, "CENTER", 35, 16)
+                deadText:SetFont(Lorti.fontFamily, Lorti.StringSize + 3, "OUTLINE")
+			 elseif scale >= 1.8 then
+                -- Large scale (1.8 to 1.99)
+                deadText:SetPoint("CENTER", frame, "CENTER", 33, 16)
+                deadText:SetFont(Lorti.fontFamily, Lorti.StringSize + 2, "OUTLINE")
+            elseif scale >= 1.6 then
+                -- Large scale (1.6 to 1.79)
+                deadText:SetPoint("CENTER", frame, "CENTER", 30, 13)
+                deadText:SetFont(Lorti.fontFamily, Lorti.StringSize + 1, "OUTLINE")
+            elseif scale >= 1.4 then
+                -- Large scale (>= 1.4 to 1.59)
+                deadText:SetPoint("CENTER", frame, "CENTER", 27, 12)
+                deadText:SetFont(Lorti.fontFamily, Lorti.StringSize, "OUTLINE")
+            elseif scale >= 1.2 then
+                -- Medium-large scale (1.2 to 1.39)
+                deadText:SetPoint("CENTER", frame, "CENTER", 25, 10)
+                deadText:SetFont(Lorti.fontFamily, Lorti.StringSize - 1, "OUTLINE")
+            elseif scale >= 1.0 then
+                -- Medium scale (1.0 to 1.19)
+                deadText:SetPoint("CENTER", frame, "CENTER", 20, 8)
+                deadText:SetFont(Lorti.fontFamily, Lorti.StringSize - 2, "OUTLINE")
+            elseif scale >= 0.8 then
+                -- Small-medium scale (0.8 to 0.99)
+                deadText:SetPoint("CENTER", frame, "CENTER", 18, 7)
+                deadText:SetFont(Lorti.fontFamily, Lorti.StringSize - 3, "OUTLINE")
+            elseif scale >= 0.6 then
+                -- Small scale (0.6 to 0.79)
+                deadText:SetPoint("CENTER", frame, "CENTER", 13, 6)
+                deadText:SetFont(Lorti.fontFamily, Lorti.StringSize - 6, "OUTLINE")
+            else
+                -- Very small scale (< 0.6)
+                deadText:SetPoint("CENTER", frame, "CENTER", 10, 5)
+                deadText:SetFont(Lorti.fontFamily, Lorti.StringSize - 8, "OUTLINE")
+            end
 
             deadText:Hide()
             frame.DeadText = deadText
@@ -1633,6 +1682,71 @@ function ApplyFonts()
 	FocusFrameManaBar.TextString:SetFont(Lorti.fontFamily, Lorti.NumSize, StringType)
 	FocusFrameManaBar.LeftText:SetFont(Lorti.fontFamily, Lorti.NumSize, StringType)
 	FocusFrameManaBar.RightText:SetFont(Lorti.fontFamily, Lorti.NumSize, StringType)
+	
+	
+	local function ApplyFontsAndMoveFrames()
+    -- Ensure the Blizzard_ArenaUI addon is loaded
+    if not IsAddOnLoaded("Blizzard_ArenaUI") then
+        LoadAddOn("Blizzard_ArenaUI")
+    end
+	
+	if not Lorti.arenaframe then
+		-- Iterate through each arena enemy frame (1 to 5)
+		for i = 1, 5 do
+			local arenaFrame = _G["ArenaEnemyFrame"..i]
+			-- Get the frame by name
+			if arenaFrame then
+		
+				local arenaFramename = _G["ArenaEnemyFrame"..i .. "Name"]
+				local arenaFramehealth = _G["ArenaEnemyFrame"..i .. "HealthBar"]
+				local arenaFramemana = _G["ArenaEnemyFrame"..i .. "ManaBar"]
+				local arenaFramehealthtext = _G["ArenaEnemyFrame"..i .. "HealthBarText"]
+				local arenaFramemanatext = _G["ArenaEnemyFrame"..i .. "ManaBarText"]
+				local arenaFramecastbar = _G["ArenaEnemyFrame"..i .. "CastingBar"]
+				
+				arenaFrame:SetScale(2);
+				-- Reposition the arena frame
+				arenaFrame:ClearAllPoints() -- Clear any existing points
+				arenaFrame:SetPoint("TOPLEFT", UIParent, "CENTER", 250 + (i * 100), 100) 
+				arenaFramecastbar:SetScale(0.8);
+				arenaFramename:SetFont(Lorti.fontFamily, Lorti.NumSize-3, StringType)
+				arenaFramehealthtext:SetPoint("CENTER", arenaFramehealth, "CENTER", 2, 2)			
+				arenaFramehealthtext:SetFont(Lorti.fontFamily, Lorti.NumSize-4, StringType)
+				arenaFramemanatext:SetPoint("CENTER", arenaFramemana, "CENTER", 2, 1)
+				arenaFramemanatext:SetFont(Lorti.fontFamily, Lorti.NumSize-4, StringType)
+				
+				arenaFramename:SetShadowOffset(1,-1)
+				arenaFramename:SetShadowColor(0,0,0)
+				arenaFramehealthtext:SetShadowOffset(1,-1)
+				arenaFramehealthtext:SetShadowColor(0,0,0)
+				arenaFramemanatext:SetShadowOffset(1,-1)
+				arenaFramemanatext:SetShadowColor(0,0,0)
+			end
+		end
+	else
+		ArenaEnemyFrames:Hide()
+	end
+end
+
+-- Event handler to detect when the player enters an arena
+local frame = CreateFrame("Frame")
+frame:RegisterEvent("PLAYER_ENTERING_WORLD")
+frame:RegisterEvent("ADDON_LOADED")
+frame:SetScript("OnEvent", function(self, event, ...)
+    if event == "ADDON_LOADED" then
+        local addonName = ...
+        if addonName == "Blizzard_ArenaUI" then
+            -- Blizzard_ArenaUI has been loaded, apply changes
+            ApplyFontsAndMoveFrames()
+        end
+    elseif event == "PLAYER_ENTERING_WORLD" then
+        -- Check if we are in an arena
+        local _, instanceType = IsInInstance()
+        if instanceType == "arena" then
+            ApplyFontsAndMoveFrames()
+        end
+    end
+end)
 end
 
 
@@ -1684,22 +1798,149 @@ hooksecurefunc("HealthBar_OnValueChanged", function(self)
     end
 end)
 
+-- Class portrait frames
+local lastTargetToTGuid = nil
+local lastFocusToTGuid = nil
+local CP = {}
+
+local function OnLoad()
+    -- Initialize the class portraits
+    if not Lorti.ClassPortraits then return end
+	CP:CreateToTPortraits()
+
+    -- Reposition the target-target and focus-target portraits
+    if CP.TargetToTPortrait then
+        CP.TargetToTPortrait:ClearAllPoints()
+        CP.TargetToTPortrait:SetPoint("CENTER", TargetFrameToTPortrait, "CENTER")
+    end
+
+    if CP.FocusToTPortrait then
+        CP.FocusToTPortrait:ClearAllPoints()
+        CP.FocusToTPortrait:SetPoint("CENTER", FocusFrameToTPortrait, "CENTER")
+    end
+	
+	-- Hide the default targettarget portrait
+    if TargetFrameToT.portrait then
+        TargetFrameToT.portrait:Hide()
+    end
+
+    -- Hide the default focustarget portrait
+    if FocusFrameToT.portrait then
+		FocusFrameToT.portrait:Hide()
+	end
+end
+
+
+
+function CP:CreateToTPortraits()
+    if not self.TargetToTPortrait then
+        self.TargetToTPortrait = TargetFrameToT:CreateTexture(nil, "ARTWORK")
+		local width, height = TargetFrameToT.portrait:GetSize() -- Get the current size
+        width = width + 5
+        height = height + 5
+		
+        self.TargetToTPortrait:SetSize(width, height)
+        for i = 1, TargetFrameToT.portrait:GetNumPoints() do
+            local point, relativeTo, relativePoint, x, y = TargetFrameToT.portrait:GetPoint(i)
+            self.TargetToTPortrait:SetPoint(point, relativeTo, relativePoint, x, y)
+        end
+    end
+
+    if not self.FocusToTPortrait then
+        self.FocusToTPortrait = FocusFrameToT:CreateTexture(nil, "ARTWORK")
+		local width, height = FocusFrameToT.portrait:GetSize()
+        width = width + 5
+        height = height + 5
+		
+        self.FocusToTPortrait:SetSize(width, height)
+        for i = 1, FocusFrameToT.portrait:GetNumPoints() do
+            local point, relativeTo, relativePoint, x, y = FocusFrameToT.portrait:GetPoint(i)
+            self.FocusToTPortrait:SetPoint(point, relativeTo, relativePoint, x, y)
+        end
+    end
+end
+
+local CLASS_TEXTURE = "Interface\\AddOns\\Lorti-UI-Classic\\textures\\classportraits\\set%d\\%s.tga"
+
 --Class Portraits
-local function ApplyClassPortraits(self)
-	if self.unit == "player" or self.unit == "pet" then
-		return
-	end
-	if self.portrait then
-		if UnitIsPlayer(self.unit) then			
-			local t = CLASS_ICON_TCOORDS[select(2,UnitClass(self.unit))]
-			if t then
-				self.portrait:SetTexture("Interface\\TargetingFrame\\UI-Classes-Circles")
-				self.portrait:SetTexCoord(unpack(t))
-			end
-		else
-			self.portrait:SetTexCoord(0,1,0,1)
-		end
-	end
+function ns.ApplyClassPortraits(self)
+    -- Default to player frame if self is not provided
+    if not self then
+        self = {
+            unit = "player",
+            portrait = PlayerFrame.portrait
+        }
+    end
+
+    -- Determine which class portrait set to use
+    local classPortraitSet = self.unit == "player" and Lorti.playerClassPortraitSet or Lorti.classPortraitSet
+
+    -- Exit early if class portraits are disabled for the current unit
+    if (self.unit == "player" and not Lorti.playerClassPortraits) or 
+       ((self.unit == "target" or self.unit == "focus") and not Lorti.ClassPortraits) or 
+       self.unit == "pet" then
+        return
+    end
+
+    -- Update the main portrait
+    if self.portrait and not (self.unit == "targettarget" or self.unit == "focus-target") then
+        if UnitIsPlayer(self.unit) then
+            local _, class = UnitClass(self.unit)
+            if class and UnitIsPlayer(self.unit) then
+                self.portrait:SetTexture(CLASS_TEXTURE:format(classPortraitSet, class))
+                if self.unit == "target" or self.unit == "focus" then
+                    self.portrait:SetTexCoord(0, 1.06, 0, 1.06)
+                end
+            else
+                self.portrait:SetTexture("")
+                if self.unit == "target" or self.unit == "focus" then
+                    self.portrait:SetTexCoord(0, 1, 0, 1)
+                end
+            end
+        end
+    end
+
+    -- Handle target-target portrait
+    if UnitExists("targettarget") then
+        if UnitGUID("targettarget") ~= lastTargetToTGuid then
+            lastTargetToTGuid = UnitGUID("targettarget")
+            if CP.TargetToTPortrait then
+                if UnitIsPlayer("targettarget") then
+                    local _, class = UnitClass("targettarget")
+                    CP.TargetToTPortrait:SetTexture(CLASS_TEXTURE:format(classPortraitSet, class))
+                    CP.TargetToTPortrait:Show()
+                else
+                    CP.TargetToTPortrait:Hide()
+                end
+            end
+        end
+    else
+        if CP.TargetToTPortrait then
+            CP.TargetToTPortrait:Hide()
+        end
+        lastTargetToTGuid = nil
+    end
+
+    -- Handle focus-target portrait
+    if UnitExists("focus-target") then
+        if UnitGUID("focus-target") ~= lastFocusToTGuid then
+            lastFocusToTGuid = UnitGUID("focus-target")
+            if CP.FocusToTPortrait then
+                if UnitIsPlayer("focus-target") then
+                    local _, class = UnitClass("focus-target")
+                    CP.FocusToTPortrait:SetTexture(CLASS_TEXTURE:format(classPortraitSet, class))
+                    CP.FocusToTPortrait:Show()
+                else
+                    CP.FocusToTPortrait:Hide()
+                end
+            end
+        end
+    else
+        if CP.FocusToTPortrait then
+            CP.FocusToTPortrait:Hide()
+        end
+        lastFocusToTGuid = nil
+    end
 end
 
 --Player, Target, and Target Name Background Bar Textures
@@ -1758,11 +1999,11 @@ end
 
 local function ScaleFrames()
 	if Lorti.bigbuff == true then
-		PlayerFrame:SetScale(1.3) 
-		TargetFrame:SetScale(1.3) 
-		FocusFrame:SetScale(1.3)
-		for i=1,4 do _G["PartyMemberFrame"..i]:SetScale(1.6) end
-		ComboFrame:SetScale(1.3)
+		-- PlayerFrame:SetScale(1.3) 
+		-- TargetFrame:SetScale(1.3) 
+		-- FocusFrame:SetScale(1.3)
+		-- for i=1,4 do _G["PartyMemberFrame"..i]:SetScale(1.6) end
+		-- ComboFrame:SetScale(1.3)
 	end
 end
 
@@ -1793,8 +2034,9 @@ local function OnEvent(self, event)
 	end
 	
 	if (event == "ADDON_LOADED") then
+		OnLoad()
 		enable()
-		ScaleFrames()
+		-- ScaleFrames()
 		ApplyFonts()
 		
 		if Lorti.thickness then
@@ -1805,16 +2047,28 @@ local function OnEvent(self, event)
         end
 		
 
-		if Lorti.ClassPortraits == true then
-			hooksecurefunc("UnitFramePortrait_Update", ApplyClassPortraits)
+		if Lorti.ClassPortraits or Lorti.playerClassPortraits then
+			hooksecurefunc("UnitFramePortrait_Update", ns.ApplyClassPortraits)
+		end
+		if Lorti.ClassPortraits or Lorti.playerClassPortraits then
+			hooksecurefunc("UnitFramePortrait_Update", function(self)
+			ns.ApplyClassPortraits(self)
+			end)
 		end
 		if Lorti.flatbars == true then
 			ApplyFlatBars()
 		end
+	
 	end
 
 	if (event == "PLAYER_ENTERING_WORLD") then
 		ApplyFonts()
+		
+		if Lorti.keypress then 
+			SetCVar('ActionButtonUseKeyDown', 1)
+		else
+			SetCVar('ActionButtonUseKeyDown', 0)
+		end
 		-- if _G["CompactRaidFrame" .. i] then ???
 		-- if CompactRaidGroup1 and not groupcolored == true then
 		--	ColorRaid()
@@ -1823,6 +2077,7 @@ local function OnEvent(self, event)
 		-- if CompactRaidFrame1 and not singlecolored == true then
 		--	ColorRaid()
 		-- end
+		UpdateAddOnMemoryUsage()
 	end
 
 	
@@ -1938,12 +2193,35 @@ local function RepositionPartyFrames()
             -- Anchor each party frame to UIParent.
             -- Here, the first party frame is positioned at (baseX, baseY),
             -- and subsequent frames are moved upward by the frame's height plus a little spacing.
+			
             local height = frame:GetHeight() -- fallback height if GetHeight() is nil
-			if Lorti.bigbuff then
-				frame:SetPoint("CENTER", CompactRaidFrameManager, "CENTER", 130, 0 - (height + spacing) * (i - 1))
-			else
-				frame:SetPoint("CENTER", CompactRaidFrameManager, "CENTER", 170, 35 - (height + spacing) * (i - 1))
-			end
+			local scale = Lorti.partyFrameScale or 1.0
+
+			if scale >= 1.99 then
+                -- Very large scale (>= 2.0)
+                frame:SetPoint("CENTER", CompactRaidFrameManagerToggleButton, "CENTER", 70, -5 - (height + spacing) * (i - 1))
+			elseif scale >= 1.79 then
+                -- Large scale (1.80 to 1.99)
+                frame:SetPoint("CENTER", CompactRaidFrameManagerToggleButton, "CENTER", 70, -10 - (height + spacing) * (i - 1))
+            elseif scale >= 1.59 then
+                -- Medium-large scale (1.60 to 1.79)
+                frame:SetPoint("CENTER", CompactRaidFrameManagerToggleButton, "CENTER", 75, -15 - (height + spacing) * (i - 1))
+            elseif scale >= 1.39 then
+                -- Large scale (1.40 to 1.59)
+                frame:SetPoint("CENTER", CompactRaidFrameManagerToggleButton, "CENTER", 75, -20 - (height + spacing) * (i - 1))
+            elseif scale >= 1.19 then
+                -- Medium-large scale (1.20 to 1.39)
+                frame:SetPoint("CENTER", CompactRaidFrameManagerToggleButton, "CENTER", 75, -25 - (height + spacing) * (i - 1))
+            elseif scale >= 0.89 then
+                -- Medium scale (0.9 to 1.9)
+                frame:SetPoint("CENTER", CompactRaidFrameManagerToggleButton, "CENTER", 80, -35 - (height + spacing) * (i - 1))
+            elseif scale >= 0.6 then
+                -- Small scale (0.6 to 0.89)
+                frame:SetPoint("CENTER", CompactRaidFrameManagerToggleButton, "CENTER", 85, -30 - (height + spacing) * (i - 1))
+            else
+                -- Very small scale (< 0.6)
+                frame:SetPoint("CENTER", CompactRaidFrameManagerToggleButton, "CENTER", 90, -25 - (height + spacing) * (i - 1))
+            end
         end
     end
 end
@@ -2214,6 +2492,131 @@ end
     e:SetScript("OnEvent", OnEvent)
 end
 
+if Lorti.smooth then
+local smoothing = {}
+local floor = math.floor
+local mabs = math.abs
+local min, max = math.min, math.max
+local UnitGUID = UnitGUID
+local ONUPDATE_INTERVAL = 0.01
+local TimeSinceLastUpdate = 0
+
+local barstosmooth = {
+	PlayerFrameHealthBar = "player",
+	PlayerFrameManaBar = "player",
+	PetFrameHealthBar = "pet",
+	PetFrameManaBar = "pet",
+	TargetFrameHealthBar = "target",
+	TargetFrameManaBar = "target",
+	FocusFrameHealthBar = "focus",
+	FocusFrameManaBar = "focus",
+	PartyMemberFrame1HealthBar = "party1",
+	PartyMemberFrame1ManaBar = "party1",
+	PartyMemberFrame2HealthBar = "party2",
+	PartyMemberFrame2ManaBar = "party2",
+	PartyMemberFrame3HealthBar = "party3",
+	PartyMemberFrame3ManaBar = "party3",
+	PartyMemberFrame4HealthBar = "party4",
+	PartyMemberFrame4ManaBar = "party4"
+}
+
+local smoothframe = CreateFrame("Frame")
+smoothframe:RegisterEvent("ADDON_LOADED")
+
+local function isPlate(frame)
+	local name = frame:GetName()
+	if name and name:find("NamePlate") then
+		return true
+	end
+
+	return false
+end
+
+local function AnimationTick()
+	local limit = .33
+	for bar, value in pairs(smoothing) do
+		local cur = bar:GetValue()
+		local new = cur + min((value - cur) /3, max(value - cur, limit))
+
+		if new ~= new then
+			new = value
+		end
+
+		bar:SetValue_(floor(new))
+		if cur == value or mabs(new - value) < 2 then
+			bar:SetValue_(value)
+			smoothing[bar] = nil
+		end
+	end
+end
+
+local function SmoothSetValue(self, value)
+	self.finalValue = value
+	if self.unitType then
+		local guid = UnitGUID(self.unitType)
+		if (value == self:GetValue() or (not guid or guid ~= self.lastGuid)) then
+			smoothing[self] = nil
+			self:SetValue_(value)
+		else
+			smoothing[self] = value
+		end
+		self.lastGuid = guid
+	else
+		local _, max = self:GetMinMaxValues()
+		if (value == self:GetValue() or (self._max and self._max ~= max)) then
+			smoothing[self] = nil
+			self:SetValue_(value)
+		else
+			smoothing[self] = value
+		end
+		self._max = max
+	end
+end
+
+local function SmoothBar(bar)
+	if not bar.SetValue_ then
+		bar.SetValue_ = bar.SetValue
+		bar.SetValue = SmoothSetValue
+	end
+end
+
+local function onUpdate(self, elapsed)
+	TimeSinceLastUpdate = TimeSinceLastUpdate + elapsed
+	if TimeSinceLastUpdate >= ONUPDATE_INTERVAL then
+		TimeSinceLastUpdate = 0
+		local frames = {WorldFrame:GetChildren()}
+		for _, plate in ipairs(frames) do
+			if not plate:IsForbidden() and isPlate(plate) and C_NamePlate.GetNamePlates() and plate:IsVisible() then
+				local v = plate:GetChildren()
+				if  v.healthBar then
+					SmoothBar(v.healthBar)
+				end
+			end
+		end
+
+		for k,v in pairs (barstosmooth) do
+			if _G[k] then
+				SmoothBar(_G[k])
+				_G[k]:SetScript("OnHide", function() _G[k].lastGuid = nil; _G[k].max_ = nil end)
+				if v ~= "" then
+					_G[k].unitType = v
+				end
+			end
+		end
+		AnimationTick()
+	end
+end
+
+smoothframe:SetScript("OnEvent", function(self, event)
+	if event == "ADDON_LOADED" then
+		smoothframe:HookScript("OnUpdate", onUpdate)
+	end
+	self:UnregisterEvent("ADDON_LOADED")
+	self:SetScript("OnEvent", nil)
+end);
+
+end
+
 
 
 --[[
@@ -2320,10 +2723,217 @@ end
 ]]
 
 
+
+-- Custom number formatting function
+local function true_format(value)
+    if value > 1e7 then return (math.floor(value / 1e6)) .. 'm'
+    elseif value > 1e6 then return (math.floor((value / 1e6) * 10) / 10) .. 'm'
+    elseif value > 1e4 then return (math.floor(value / 1e3)) .. 'k'
+    elseif value > 1e3 then return (math.floor((value / 1e3) * 10) / 10) .. 'k'
+    else return tostring(value) end
+end
+
+-- Function to update health text to show only current health
+local function New_TextStatusBar_UpdateTextString(statusFrame, textString, value, valueMin, valueMax)
+    -- Hide left and right text if they exist
+    if statusFrame.LeftText and statusFrame.RightText then
+        statusFrame.LeftText:SetText("")
+        statusFrame.RightText:SetText("")
+        statusFrame.LeftText:Hide()
+        statusFrame.RightText:Hide()
+    end
+
+    -- Check if the status frame should display text
+    if valueMax > 0 and not statusFrame.pauseUpdates then
+        -- Only show the current health value
+        if value and valueMax > 0 then
+            statusFrame.isZero = nil
+            textString:Show()
+            textString:SetText(--[[true_format]](value))
+        end
+    else
+        -- Hide the text if no valid values are available
+        textString:Hide()
+        textString:SetText("")
+        if not statusFrame.alwaysShow then
+            statusFrame:Hide()
+        else
+            statusFrame:SetValue(0)
+        end
+    end
+
+    -- Handle dead/ghost units
+    if UnitIsDeadOrGhost("target") then
+        for _, v in pairs({TargetFrameHealthBar, TargetFrameManaBar}) do
+            if v.TextString then
+                v.TextString:SetText("")
+            end
+            if v.LeftText then
+                v.LeftText:SetText("")
+            end
+            if v.RightText then
+                v.RightText:SetText("")
+            end
+        end
+    end
+end
+
+-- Hook into the default TextStatusBar_UpdateTextString function
+local function CTextStatusBar_UpdateTextString(textStatusBar)
+    if not textStatusBar or not textStatusBar.TextString then return end
+
+    -- Ensure useSimpleValue is enabled
+    if textStatusBar.useSimpleValue then
+        local value = textStatusBar.finalValue or textStatusBar:GetValue()
+        local valueMin, valueMax = textStatusBar:GetMinMaxValues()
+        New_TextStatusBar_UpdateTextString(textStatusBar, textStatusBar.TextString, value, valueMin, valueMax)
+    end
+end
+
+-- Ensure useSimpleValue is set for all relevant frames
+local function SetupFrames()
+    -- Player Frame
+    if PlayerFrameHealthBar then
+        PlayerFrameHealthBar.useSimpleValue = true
+    end
+	if PlayerFrameManaBar then
+		PlayerFrameManaBar.useSimpleValue = true
+	end
 	
+    -- Target Frame
+    if TargetFrameHealthBar then
+        TargetFrameHealthBar.useSimpleValue = true
+    end
+	if TargetFrameManaBar then
+		TargetFrameManaBar.useSimpleValue = true
+	end
+	
+    -- Pet Frame
+    if PetFrameHealthBar then
+        PetFrameHealthBar.useSimpleValue = true
+    end
+	if PetFrameManaBar then
+		PetFrameManaBar.useSimpleValue = true
+	end
+    -- Focus Frame
+    if FocusFrameHealthBar then
+        FocusFrameHealthBar.useSimpleValue = true
+    end
+	if FocusFrameManaBar then
+		FocusFrameManaBar.useSimpleValue = true
+	end
+
+    -- Party Frames
+    for i = 1, 4 do
+        local partyFramehealth = _G["PartyMemberFrame" .. i .. "HealthBar"]
+        if partyFramehealth then
+            partyFramehealth.useSimpleValue = true
+        end
+		local partyFramemana = _G["PartyMemberFrame" .. i .. "ManaBar"]
+        if partyFramemana then
+            partyFramemana.useSimpleValue = true
+        end
+    end
+end
+
+-- Main initialization
+local CF = CreateFrame("Frame")
+CF:RegisterEvent("PLAYER_LOGIN")
+CF:SetScript("OnEvent", function(self, event)
+    if event == "PLAYER_LOGIN" and Lorti.numerical then
+        -- Set up frames
+        SetupFrames()
+
+        -- Hook into the default function
+        hooksecurefunc("TextStatusBar_UpdateTextString", CTextStatusBar_UpdateTextString)
+
+        -- Debug message (optional)
+        print("Current Health Only Addon Loaded!")
+    end
+
+    -- Unregister the event after setup
+    self:UnregisterEvent("PLAYER_LOGIN")
+    self:SetScript("OnEvent", nil)
+end)
+
+if Lorti.rangecolor then
+-- Range recolor by Xyz
+local IsUsableAction, GetActionCount, IsConsumableAction = IsUsableAction, GetActionCount, IsConsumableAction
+local IsStackableAction, IsActionInRange, RANGE_INDICATOR = IsStackableAction, IsActionInRange, RANGE_INDICATOR
+
+local function Usable(button, r, g, b, a)
+    local action = button.action
+    local icon = button.icon
+
+    if not action or not icon then
+        return
+    end
+
+    local isUsable, notEnoughMana = IsUsableAction(action)
+    local count = GetActionCount(action)
+
+    if isUsable then
+        -- if (r ~= 1.0 or g ~= 1.0 or b ~= 1.0 or a ~= 1.0) or icon:IsDesaturated() then
+        icon:SetVertexColor(1.0, 1.0, 1.0, 1.0)
+        icon:SetDesaturated(false)
+        --  end
+    elseif notEnoughMana then
+        -- if ((mfloor(r * 100) / 100) ~= 0.3 or (mfloor(g * 100) / 100) ~= 0.3 or (mfloor(b * 100) / 100) ~= 0.3 or a ~= 1.0) or not icon:IsDesaturated() then
+        icon:SetVertexColor(0.3, 0.3, 0.3, 1.0)
+        icon:SetDesaturated(true)
+        -- end
+    elseif (IsConsumableAction(action) or IsStackableAction(action)) and count == 0 then
+        if not icon:IsDesaturated() then
+            icon:SetDesaturated(true)
+        end
+    else
+        if UnitExists("target") or UnitExists("focus") then
+            -- if ((mfloor(r * 100) / 100) ~= 0.4 or (mfloor(g * 100) / 100) ~= 0.4 or (mfloor(b * 100) / 100) ~= 0.4 or a ~= 1.0) or not icon:IsDesaturated() then
+            icon:SetVertexColor(0.4, 0.4, 0.4, 1.0)
+            icon:SetDesaturated(true)
+            --  end
+        else
+            --   if r ~= 1.0 or b ~= 1.0 or g ~= 1.0 or a ~= 1.0 then
+            icon:SetVertexColor(1.0, 1.0, 1.0, 1.0)
+            icon:SetDesaturated(false)
+            --  end
+        end
+    end
+end
+
+local function RangeIndicator(self, checksRange, inRange)
+    if self and not self:IsVisible() then
+        return
+    end
+
+    if checksRange == nil and inRange == nil then
+        local valid = IsActionInRange(self.action);
+        checksRange = (valid ~= nil)
+        inRange = checksRange and valid;
+    end
+
+    local r, g, b, a = self.icon:GetVertexColor()
+
+    if checksRange and not inRange then
+        -- if r ~= 1.0 or ((mceil(g * 100) / 100) ~= 0.35 or (mceil(b * 100) / 100) ~= 0.35 or (mceil(a * 100) / 100) ~= 0.75) or not self.icon:IsDesaturated() then
+        self.icon:SetVertexColor(1.0, 0.35, 0.35, 0.99)
+        self.icon:SetDesaturated(true)
+        -- end
+    else
+        if self:GetName():match("PetActionButton%d") then
+            self.icon:SetVertexColor(1.0, 1.0, 1.0, 1.0)
+            self.icon:SetDesaturated(false)
+            return
+        end
+        Usable(self, r, g, b, a)
+    end
+end
+if not (IsAddOnLoaded("Bartender4") or IsAddOnLoaded("tullaRange")) then
+            hooksecurefunc("ActionButton_UpdateRangeIndicator", RangeIndicator)
+            hooksecurefunc("ActionButton_UpdateUsable", RangeIndicator)
+        end
+end
+
 end)
 f:RegisterEvent("PLAYER_LOGIN")
 f:RegisterEvent("ADDON_LOADED")
-
-
-    
