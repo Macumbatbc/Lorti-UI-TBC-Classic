@@ -225,49 +225,53 @@ function LortiUIPlayerFrame(self)
 		self.manabar:SetPoint("TOPLEFT",108,-52);
 end
 
-local function ColorRaid()
-	for g = 1, NUM_RAID_GROUPS do
-		local group = _G["CompactRaidGroup"..g.."BorderFrame"]
-		if group then
-			for _, region in pairs({group:GetRegions()}) do
-				if region:IsObjectType("Texture") then
-					region:SetVertexColor(.05, .05, .05)
-				end
-			end
-		end
 
-		for m = 1, 5 do
-			local frame = _G["CompactRaidGroup"..g.."Member"..m]
-			if frame then
-				groupcolored = true
-				for _, region in pairs({frame:GetRegions()}) do
-					if region:GetName():find("Border") then
+local function ColorRaid()
+	if Lorti.applyblackborder then
+		for g = 1, NUM_RAID_GROUPS do
+			local group = _G["CompactRaidGroup"..g.."BorderFrame"]
+			if group then
+				for _, region in pairs({group:GetRegions()}) do
+					if region:IsObjectType("Texture") then
 						region:SetVertexColor(.05, .05, .05)
 					end
 				end
 			end
 
-			local frame = _G["CompactRaidFrame"..m]
+			for m = 1, 5 do
+				local frame = _G["CompactRaidGroup"..g.."Member"..m]
 				if frame then
-					singlecolored = true
+					groupcolored = true
 					for _, region in pairs({frame:GetRegions()}) do
 						if region:GetName():find("Border") then
 							region:SetVertexColor(.05, .05, .05)
 						end
 					end
 				end
+
+				local frame = _G["CompactRaidFrame"..m]
+					if frame then
+						singlecolored = true
+						for _, region in pairs({frame:GetRegions()}) do
+							if region:GetName():find("Border") then
+								region:SetVertexColor(.05, .05, .05)
+							end
+						end
+					end
+				end
 			end
-		end
-	
-	for _, region in pairs({CompactRaidFrameContainerBorderFrame:GetRegions()}) do
-		if region:IsObjectType("Texture") then
-			region:SetVertexColor(.05, .05, .05)
+		
+		for _, region in pairs({CompactRaidFrameContainerBorderFrame:GetRegions()}) do
+			if region:IsObjectType("Texture") then
+				region:SetVertexColor(.05, .05, .05)
+			end
 		end
 	end
 end
-
 CF:SetScript("OnEvent", function(self, event)
+		
 		ColorRaid()
+		if Lorti.applyblackborder then
 		CF:SetScript("OnUpdate", function()
 			if CompactRaidGroup1 and not groupcolored == true then
 				ColorRaid()
@@ -276,6 +280,8 @@ CF:SetScript("OnEvent", function(self, event)
 				ColorRaid()
 			end
 		end)
+		CastingBarFrame.Border:SetVertexColor(0.05,0.05,0.05)
+		end
 		if event == "GROUP_ROSTER_UPDATE" then return end
 		if not (IsAddOnLoaded("Shadowed Unit Frames")
 				or IsAddOnLoaded("PitBull Unit Frames 4.0")
@@ -304,15 +310,15 @@ CF:SetScript("OnEvent", function(self, event)
 				PlayerHitIndicator.SetText = function() end
 				PetHitIndicator:SetText(nil)
 				PetHitIndicator.SetText = function() end
-			end
-		else
-			CastingBarFrameBorder:SetVertexColor(0.05,0.05,0.05)
+			end			
 		end
 	end)
-	
+
+
 local Framecolor = CreateFrame("Frame")
 Framecolor:RegisterEvent("ADDON_LOADED")
 Framecolor:SetScript("OnEvent", function(self, event, addon)
+if Lorti.applyblackborder then
 	if not (IsAddOnLoaded("Shadowed Unit Frames") or IsAddOnLoaded("PitBull Unit Frames 4.0") or IsAddOnLoaded("X-Perl UnitFrames")) then
 	   if (addon == "Lorti-UI-Classic") then
 			
@@ -1067,6 +1073,7 @@ end
 	self:UnregisterEvent("ADDON_LOADED")
 	Framecolor:SetScript("OnEvent", nil)
 	end
+end
 end)
 
 --Health and Mana Text Shadows
@@ -1997,6 +2004,32 @@ end
 end
 ]]
 
+-- Spell Queue fix from RougeUI, credit for Xyz
+local function SpellQueueFix()
+    local _, _, latencyHome, latencyWorld = GetNetStats()
+    local _, class = UnitClass("player")
+    local value, currentLatency
+
+    if (latencyHome or latencyWorld) == 0 then
+        C_Timer.After(40, SpellQueueFix)
+        return
+    end
+
+    if latencyHome >= latencyWorld then
+        currentLatency = latencyHome
+    elseif latencyWorld > latencyHome then
+        currentLatency = latencyWorld
+    end
+
+    if class == "ROGUE" then
+        value = 200 + currentLatency
+        ConsoleExec("SpellQueueWindow " .. value)
+    elseif class ~= "ROGUE" then
+        value = 250 + currentLatency
+        ConsoleExec("SpellQueueWindow " .. value)
+    end
+end
+
 local function ScaleFrames()
 	if Lorti.bigbuff == true then
 		-- PlayerFrame:SetScale(1.3) 
@@ -2055,15 +2088,21 @@ local function OnEvent(self, event)
 			ns.ApplyClassPortraits(self)
 			end)
 		end
-		if Lorti.flatbars == true then
+		--[[ if Lorti.flatbars == true then
 			ApplyFlatBars()
-		end
+		end ]]
 	
 	end
-
+	if event == "PLAYER_LOGIN" then
+		if Lorti.spellqueue then
+			self:RegisterEvent("PLAYER_ENTERING_WORLD")
+			self:RegisterEvent("ZONE_CHANGED_NEW_AREA")
+		end
+	end
 	if (event == "PLAYER_ENTERING_WORLD") then
 		ApplyFonts()
 		
+		-- From RougeUI, credit to Xyz
 		if Lorti.keypress then 
 			SetCVar('ActionButtonUseKeyDown', 1)
 		else
@@ -2078,7 +2117,17 @@ local function OnEvent(self, event)
 		--	ColorRaid()
 		-- end
 		UpdateAddOnMemoryUsage()
-	end
+		
+		if Lorti.spellqueue then
+            SpellQueueFix()
+        end
+
+        
+    elseif event == "ZONE_CHANGED_NEW_AREA" then
+        if Lorti.spellqueue then
+            SpellQueueFix()
+        end
+    end
 
 	
 end
@@ -2232,6 +2281,7 @@ f:SetScript("OnEvent", function(self, event)
     RepositionPartyFrames()
 end)
 
+-- From RougeUI modified to show mana ticks, credit to Xyz
 if Lorti.energytick then
     local events = {
         "PLAYER_LOGIN",
@@ -2292,7 +2342,6 @@ local function SetTickValue(self, elapsed, resourceType)
 end
 
 
--- OnUpdate function
 -- OnUpdate function
 local function OnUpdate(self, elapsed)
     local time = GetTime()
@@ -2492,7 +2541,7 @@ end
     e:SetScript("OnEvent", OnEvent)
 end
 
-if Lorti.smooth then
+--[[ if Lorti.smooth then
 local smoothing = {}
 local floor = math.floor
 local mabs = math.abs
@@ -2617,6 +2666,7 @@ end);
 
 end
 
+]]
 
 
 --[[
@@ -2843,12 +2893,9 @@ CF:SetScript("OnEvent", function(self, event)
     if event == "PLAYER_LOGIN" and Lorti.numerical then
         -- Set up frames
         SetupFrames()
-
+		
         -- Hook into the default function
         hooksecurefunc("TextStatusBar_UpdateTextString", CTextStatusBar_UpdateTextString)
-
-        -- Debug message (optional)
-        print("Current Health Only Addon Loaded!")
     end
 
     -- Unregister the event after setup
@@ -2856,6 +2903,7 @@ CF:SetScript("OnEvent", function(self, event)
     self:SetScript("OnEvent", nil)
 end)
 
+-- From RougeUI, credit to Xyz
 if Lorti.rangecolor then
 -- Range recolor by Xyz
 local IsUsableAction, GetActionCount, IsConsumableAction = IsUsableAction, GetActionCount, IsConsumableAction
@@ -2928,11 +2976,151 @@ local function RangeIndicator(self, checksRange, inRange)
         Usable(self, r, g, b, a)
     end
 end
-if not (IsAddOnLoaded("Bartender4") or IsAddOnLoaded("tullaRange")) then
+		if not (IsAddOnLoaded("Bartender4") or IsAddOnLoaded("tullaRange")) then
             hooksecurefunc("ActionButton_UpdateRangeIndicator", RangeIndicator)
             hooksecurefunc("ActionButton_UpdateUsable", RangeIndicator)
         end
 end
+
+-- Druid mana bar from LeatrixPlus
+local _, class = UnitClass("player")
+if class == "DRUID" then
+    -- Set up constants for the additional power bar
+    RunScript([[
+        ADDITIONAL_POWER_BAR_NAME = "MANA"
+        ADDITIONAL_POWER_BAR_INDEX = 0
+        ALT_MANA_BAR_PAIR_DISPLAY_INFO = { DRUID = { [Enum.PowerType.Rage] = true; [Enum.PowerType.Energy] = true } }
+    ]])
+
+    -- Alternate Power Bar Functions (copied from Blizzard's AlternatePowerBar.lua)
+    local function AlternatePowerBar_Initialize(self)
+        if not (self.powerName and self.powerIndex) then
+            self.powerName = ADDITIONAL_POWER_BAR_NAME
+            self.powerIndex = ADDITIONAL_POWER_BAR_INDEX
+        end
+
+        local parent = self:GetParent()
+        self:RegisterEvent("PLAYER_ENTERING_WORLD")
+        self:RegisterUnitEvent("UNIT_DISPLAYPOWER", parent.unit)
+        self:RegisterUnitEvent("UNIT_MAXPOWER", parent.unit)
+        self:RegisterUnitEvent("UNIT_POWER_UPDATE", parent.unit)
+
+        local color = PowerBarColor[self.powerName]
+        self:SetStatusBarColor(color.r, color.g, color.b)
+    end
+
+    local function AlternatePowerBar_UpdateMaxValue(self)
+        self:SetMinMaxValues(0, UnitPowerMax(self:GetParent().unit, self.powerIndex))
+    end
+
+    local function AlternatePowerBar_UpdateValue(self)
+		local currentPower = UnitPower(self:GetParent().unit, self.powerIndex)
+		if Lorti.numerical then
+			self.TextString:SetText(--[[true_format]](currentPower)) -- Use your custom formatting function
+        else
+			self:SetValue(currentPower)
+		end
+		self:SetValue(currentPower)
+    end
+	
+    local function AlternatePowerBar_UpdatePowerType(self)
+        local unit = self:GetParent().unit
+        local _, class = UnitClass(unit)
+        local show = (UnitPowerMax(unit, self.powerIndex) > 0 and ALT_MANA_BAR_PAIR_DISPLAY_INFO[class] and ALT_MANA_BAR_PAIR_DISPLAY_INFO[class][UnitPowerType(unit)])
+        self.pauseUpdates = not show
+        if show then AlternatePowerBar_UpdateValue(self) end
+        self:SetShown(show)
+    end
+
+    local function AlternatePowerBar_OnLoad(self)
+        self.textLockable = 1
+        self.cvar = "statusText"
+        self.cvarLabel = "STATUS_TEXT_PLAYER"
+        self.capNumericDisplay = true
+        AlternatePowerBar_Initialize(self)
+        TextStatusBar_Initialize(self)
+    end
+
+    local function AlternatePowerBar_OnEvent(self, event, ...)
+        if event == "PLAYER_ENTERING_WORLD" or event == "UNIT_MAXPOWER" then
+            AlternatePowerBar_UpdateMaxValue(self)
+        end
+        if event == "PLAYER_ENTERING_WORLD" or event == "UNIT_DISPLAYPOWER" then
+            AlternatePowerBar_UpdatePowerType(self)
+        end
+        if event == "UNIT_POWER_UPDATE" and self:IsShown() then
+            AlternatePowerBar_UpdateValue(self)
+        end
+        TextStatusBar_OnEvent(self, event, ...)
+    end
+
+    local function AlternatePowerBar_OnUpdate(self, elapsed)
+        AlternatePowerBar_UpdateValue(self)
+    end
+
+    -- Create the Druid Mana Bar
+    local bar = CreateFrame("StatusBar", nil, PlayerFrame, "TextStatusBar")
+    bar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
+    bar:SetStatusBarColor(0, 0, 1) -- Blue color for mana
+    bar:SetSize(110, 12)
+    bar:SetPoint("BOTTOMLEFT", 112, 24)
+
+    -- Background
+    bar.DefaultBackground = bar:CreateTexture(nil, "BACKGROUND")
+    bar.DefaultBackground:SetColorTexture(0, 0, 0, 0.5)
+    bar.DefaultBackground:SetAllPoints(bar)
+
+    -- Borders (optional, only if you want them)
+    local chainR, chainG, chainB = 0.86, 0.70, 0.12
+    bar.DefaultBorder = bar:CreateTexture(nil, "OVERLAY")
+    bar.DefaultBorder:SetTexture("Interface\\AddOns\\Lorti-UI-Classic\\textures\\UI-CharacterFrame-GroupIndicator.blp")
+    bar.DefaultBorder:SetTexCoord(0.125, 0.25, 1, 0)
+    bar.DefaultBorder:SetHeight(16)
+    bar.DefaultBorder:SetPoint("TOPLEFT", 4, 0)
+    bar.DefaultBorder:SetPoint("TOPRIGHT", -4, 0)
+    bar.DefaultBorder:SetVertexColor(chainR, chainG, chainB)
+
+    bar.DefaultBorderLeft = bar:CreateTexture(nil, "OVERLAY")
+    bar.DefaultBorderLeft:SetTexture("Interface\\AddOns\\Lorti-UI-Classic\\textures\\UI-CharacterFrame-GroupIndicator.blp")
+    bar.DefaultBorderLeft:SetTexCoord(0, 0.125, 1, 0)
+    bar.DefaultBorderLeft:SetSize(16, 16)
+    bar.DefaultBorderLeft:SetPoint("TOPLEFT", -12, 0)
+    bar.DefaultBorderLeft:SetVertexColor(chainR, chainG, chainB)
+
+    bar.DefaultBorderRight = bar:CreateTexture(nil, "OVERLAY")
+    bar.DefaultBorderRight:SetTexture("Interface\\AddOns\\Lorti-UI-Classic\\textures\\UI-CharacterFrame-GroupIndicator.blp")
+    bar.DefaultBorderRight:SetTexCoord(0.125, 0, 1, 0)
+    bar.DefaultBorderRight:SetSize(16, 16)
+    bar.DefaultBorderRight:SetPoint("TOPRIGHT", 12, 0)
+    bar.DefaultBorderRight:SetVertexColor(chainR, chainG, chainB)
+
+    -- Text Strings
+    bar.TextString = bar:CreateFontString(nil, "OVERLAY", "TextStatusBarText")
+    bar.TextString:SetPoint("CENTER")
+    bar.LeftText = bar:CreateFontString(nil, "OVERLAY", "TextStatusBarText")
+    bar.LeftText:SetPoint("LEFT")
+    bar.RightText = bar:CreateFontString(nil, "OVERLAY", "TextStatusBarText")
+    bar.RightText:SetPoint("RIGHT")
+
+    -- Font Settings
+    bar.TextString:SetFont(Lorti.fontFamily, Lorti.NumSize-2, "OUTLINE")
+    bar.LeftText:SetFont(Lorti.fontFamily, Lorti.NumSize-2, "OUTLINE")
+    bar.RightText:SetFont(Lorti.fontFamily, Lorti.NumSize-2, "OUTLINE")
+
+    -- Shadow Effects
+    bar.TextString:SetShadowOffset(1, -1)
+    bar.TextString:SetShadowColor(0, 0, 0)
+    bar.LeftText:SetShadowOffset(1, -1)
+    bar.LeftText:SetShadowColor(0, 0, 0)
+    bar.RightText:SetShadowOffset(1, -1)
+    bar.RightText:SetShadowColor(0, 0, 0)
+
+    -- Scripts
+    bar:SetScript("OnEvent", AlternatePowerBar_OnEvent)
+    bar:SetScript("OnUpdate", AlternatePowerBar_OnUpdate)
+    AlternatePowerBar_OnLoad(bar)
+end
+
 
 end)
 f:RegisterEvent("PLAYER_LOGIN")

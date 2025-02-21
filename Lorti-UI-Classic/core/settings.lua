@@ -9,7 +9,7 @@ local customFontPath = "Fonts\\FRIZQT__.TTF"
 local customFontSize = 12
 local customFontFlags = "OUTLINE"
 
-Lorti = { keyhide, macrohide, stealth, switchtimer, gloss, bigbuff, thickness, classbars, ClassPortraits, playerClassPortraits, classPortraitSet, playerClassPortraitSet, energytick, raidbuff, ColoredHP, ActionbarTexture, hitindicator, playername, playerFrameIndex, LortiTextureIndex, fontIndex, rangecolor, keypress, numerical, arenaframe, frameScale, partyFrameScale, fadeOutOfRange }
+Lorti = { keyhide, macrohide, stealth, switchtimer, gloss, bigbuff, thickness, classbars, ClassPortraits, playerClassPortraits, classPortraitSet, playerClassPortraitSet, energytick, raidbuff, ColoredHP, ActionbarTexture, hitindicator, playername, playerFrameIndex, LortiTextureIndex, fontIndex, rangecolor, keypress, numerical, arenaframe, frameScale, partyFrameScale, fadeOutOfRange, spellqueue, applyblackborder }
 
 local default = {
     keyhide = false,
@@ -40,6 +40,8 @@ local default = {
 	frameScale = 1.0,
 	partyFrameScale = 1.0,
 	fadeOutOfRange = true,
+	spellqueue = false,
+	applyblackborder = false,
 }
 
 
@@ -57,6 +59,52 @@ raidFixFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
 raidFixFrame:SetScript("OnEvent", function()
     SBTexturesDo()
 end)
+
+-- Helper function to add tooltips to sliders
+local function AddTooltipToSlider(slider, tooltipText)
+    slider:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText(tooltipText, 1, 0.8, 0.3) -- Yellowish color for tooltips
+        GameTooltip:Show()
+    end)
+
+    slider:SetScript("OnLeave", function(self)
+        GameTooltip:Hide()
+    end)
+end
+
+-- Helper function to add tooltips to disabled buttons
+local function AddTooltipToDisabledButton(button, tooltipText)
+    -- Create an invisible frame to handle tooltips
+    local tooltipFrame = CreateFrame("Frame", nil, button)
+    tooltipFrame:SetAllPoints(button) -- Match the size and position of the button
+    tooltipFrame:EnableMouse(true) -- Enable mouse interaction
+
+    -- Add OnEnter and OnLeave scripts for tooltips
+    tooltipFrame:SetScript("OnEnter", function(self)
+        if not button:IsEnabled() then -- Only show tooltip if the button is disabled
+            GameTooltip:SetOwner(button, "ANCHOR_RIGHT")
+            GameTooltip:SetText(tooltipText, 1, 0.8, 0.3) -- Yellowish color for tooltips
+            GameTooltip:Show()
+        end
+    end)
+
+    tooltipFrame:SetScript("OnLeave", function(self)
+        GameTooltip:Hide()
+    end)
+
+    -- Store the tooltip frame in the button for future reference
+    button.tooltipFrame = tooltipFrame
+end
+
+-- Helper function to remove tooltips when the button is enabled
+local function RemoveTooltipFromButton(button)
+    if button.tooltipFrame then
+        button.tooltipFrame:SetScript("OnEnter", nil)
+        button.tooltipFrame:SetScript("OnLeave", nil)
+        button.tooltipFrame:EnableMouse(false) -- Disable mouse interaction
+    end
+end
 
 local function UpdateClassPortraitDropdown()
     if Lorti.ClassPortraits then
@@ -146,6 +194,7 @@ function f:ADDON_LOADED()
         f.options = f:CreateGUI()
     end
 	
+	
 	UpdateClassPortraitDropdown()
 	
     f:UnregisterEvent("ADDON_LOADED")
@@ -230,14 +279,19 @@ function f:CreateGUI()
 	)
 	
 	local SeparatorTitle = Panel:CreateTexture(nil, "BACKGROUND")
-	SeparatorTitle:SetSize(500, 1) -- Width of the panel, height of 1 pixel
-	SeparatorTitle:SetPoint("TOPLEFT", title, "BOTTOMLEFT", -170, -10)
+	SeparatorTitle:SetSize(600, 1) -- Width of the panel, height of 1 pixel
+	SeparatorTitle:SetPoint("TOPLEFT", title, "BOTTOMLEFT", -220, -10)
 	SeparatorTitle:SetColorTexture(0.3, 0.3, 0.3, 1) -- Gray color for the line
+	
+	local ActionBarTitle = Panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    ActionBarTitle:SetPoint("TOPLEFT", SeparatorTitle, "BOTTOMLEFT", 40, -10) 
+    ActionBarTitle:SetText("Action Bar:")
+	ActionBarTitle:SetTextColor(0, 0.8, 1, 1)
 	
 	local HotKeyButton = CheckBtn("Hide hotkeys", "Hide hotkeys on action bars", Panel, function(self, value)
             Lorti.keyhide = value
         end)
-    HotKeyButton:SetPoint("TOPLEFT", SeparatorTitle, "BOTTOMLEFT", -10, -10)
+    HotKeyButton:SetPoint("TOPLEFT", ActionBarTitle, "BOTTOMLEFT", -25, -5)
 	HotKeyButton:SetChecked(Lorti.keyhide)	
 	-- SetButtonFont(HotKeyButton, "Fonts\\FRIZQT__.TTF", 14, "OUTLINE")
 	HotKeyButton.text:SetTextColor(1, 0.8, 0, 1)
@@ -245,129 +299,195 @@ function f:CreateGUI()
     local StealthButton = CheckBtn("Stealth stance bar", "Disable stealth stance bar switching for rogues", Panel, function(self, value)
             Lorti.stealth = value
         end)
-    StealthButton:SetPoint("TOPLEFT", HotKeyButton, "BOTTOMLEFT", 300, 27) 
+    StealthButton:SetPoint("TOPLEFT", HotKeyButton, "BOTTOMLEFT", 200, 27) 
 	StealthButton:SetChecked(Lorti.stealth)
 	StealthButton.text:SetTextColor(1, 0.8, 0, 1)
 	
 	local MacroButton = CheckBtn("Hide macro text", "Hide macro text on action bars", Panel, function(self, value)
             Lorti.macrohide = value
         end)
-    MacroButton:SetPoint("TOPLEFT", StealthButton, "BOTTOMLEFT", -300, 0) 
+    MacroButton:SetPoint("TOPLEFT", StealthButton, "BOTTOMLEFT", 200, 27) 
 	MacroButton:SetChecked(Lorti.macrohide)
 	MacroButton.text:SetTextColor(1, 0.8, 0, 1)
-	
-	local SwitchtimerButton = CheckBtn("Default Buff timer position", "Use Blizzard's default Buff timer position on player's Buffs and Debuffs", Panel, function(self, value)
-            Lorti.switchtimer = value
-        end)
-    SwitchtimerButton:SetPoint("TOPLEFT", MacroButton, "BOTTOMLEFT", 300, 27) 
-	SwitchtimerButton:SetChecked(Lorti.switchtimer)
-	SwitchtimerButton.text:SetTextColor(1, 0.8, 0, 1)
 	
 	local GlossyButton = CheckBtn("Gloss on buttons", "Enable High Gloss on action bars buttons", Panel, function(self, value)
             Lorti.gloss = value
         end)
-    GlossyButton:SetPoint("TOPLEFT", SwitchtimerButton, "BOTTOMLEFT", -300, 0) 
+    GlossyButton:SetPoint("TOPLEFT", MacroButton, "BOTTOMLEFT", -400, 0)
 	GlossyButton:SetChecked(Lorti.gloss)
 	GlossyButton.text:SetTextColor(1, 0.8, 0, 1)
 	
-	local BigbuffButton = CheckBtn("Scale buffs", "Change the size of Player's BuffFrame to 1.6", Panel, function(self, value)
-            Lorti.bigbuff = value
+	local ActionbarTextureButton = CheckBtn("Hide background", "Hide gryphons and actionbar, menu, bags background", Panel, function(self, value)
+            Lorti.ActionbarTexture = value
         end)
-    BigbuffButton:SetPoint("TOPLEFT", GlossyButton, "BOTTOMLEFT", 300, 27) 
-	BigbuffButton:SetChecked(Lorti.bigbuff)
-	BigbuffButton.text:SetTextColor(1, 0.8, 0, 1)
+    ActionbarTextureButton:SetPoint("TOPLEFT", GlossyButton, "BOTTOMLEFT", 200, 27)
+	ActionbarTextureButton:SetChecked(Lorti.ActionbarTexture)
+	ActionbarTextureButton.text:SetTextColor(1, 0.8, 0, 1)
 	
-	local ClassBarsButton = CheckBtn("Class colored health bars", "Color the unit frames Health bars based on the class of the players", Panel, function(self, value)
-            Lorti.classbars = value
+	local RangecolorButton = CheckBtn("Range Color", "Color your action buttons when out of range or out of mana", Panel, function(self, value)
+            Lorti.rangecolor = value
         end)
-    ClassBarsButton:SetPoint("TOPLEFT", BigbuffButton, "BOTTOMLEFT", -300, 0)
-	ClassBarsButton:SetChecked(Lorti.classbars)
-	ClassBarsButton.text:SetTextColor(1, 0.8, 0, 1)
+    RangecolorButton:SetPoint("TOPLEFT", ActionbarTextureButton, "BOTTOMLEFT", 200, 27)
+	RangecolorButton:SetChecked(Lorti.rangecolor)
+	RangecolorButton.text:SetTextColor(1, 0.8, 0, 1)
+	
+	
+	local KeypressButton = CheckBtn("Cast on key down", "Enable cast spells when you press on your keyboard instead of when you release it", Panel, function(self, value)
+            Lorti.keypress = value
+        end)
+    KeypressButton:SetPoint("TOPLEFT", RangecolorButton, "BOTTOMLEFT", -400, 0)
+	KeypressButton:SetChecked(Lorti.keypress)
+	KeypressButton.text:SetTextColor(1, 0.8, 0, 1)
+	
+	local SpellQueueButton = CheckBtn("Spell Queue Window", "Adjust Spell Queue value based on current latency", Panel, function(self, value)
+            Lorti.spellqueue = value
+        end)
+    SpellQueueButton:SetPoint("TOPLEFT", KeypressButton, "BOTTOMLEFT", 200, 27)
+	SpellQueueButton:SetChecked(Lorti.spellqueue)
+	SpellQueueButton.text:SetTextColor(1, 0.8, 0, 1)
+	
+	local SeparatorActionBar = Panel:CreateTexture(nil, "BACKGROUND")
+	SeparatorActionBar:SetSize(600, 1) 
+	SeparatorActionBar:SetPoint("TOPLEFT", KeypressButton, "BOTTOMLEFT", -15, -5)
+	SeparatorActionBar:SetColorTexture(0.3, 0.3, 0.3, 1) 
+	
+	local UnitFrameTitle = Panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    UnitFrameTitle:SetPoint("TOPLEFT", SeparatorActionBar, "BOTTOMLEFT", 35, -10) 
+    UnitFrameTitle:SetText("Unit Frames:")
+	UnitFrameTitle:SetTextColor(0, 0.8, 1, 1)
 	
 	local ThickFramesButton = CheckBtn("Thick Frames", "Thick Frames", Panel, function(self, value)
             Lorti.thickness = value
         end)
-    ThickFramesButton:SetPoint("TOPLEFT", ClassBarsButton, "BOTTOMLEFT", 300, 27)
+    ThickFramesButton:SetPoint("TOPLEFT", UnitFrameTitle, "BOTTOMLEFT", -20, -5)
 	ThickFramesButton:SetChecked(Lorti.thickness)
 	ThickFramesButton.text:SetTextColor(1, 0.8, 0, 1)
 	
-	local ColoredHPButton = CheckBtn("Red health bars", "Color in red the Health Bars for enemies players (if Class Health Bars is enabled)", Panel, function(self, value)
-            Lorti.ColoredHP = value
+	local ColoredHPButton
+	local ClassBarsButton = CheckBtn("Class health bars", "Color the unit frames Health bars based on the class of the players", Panel, function(self, value)
+            Lorti.classbars = value
+			Lorti.ColoredHP = false
+			if value then
+				ColoredHPButton:Enable() 
+				ColoredHPButton.text:SetTextColor(1, 0.8, 0, 1) 
+				RemoveTooltipFromButton(ColoredHPButton)
+			else
+				ColoredHPButton:Disable() 
+				ColoredHPButton:SetChecked(false)
+				ColoredHPButton.text:SetTextColor(0.5, 0.5, 0.5, 1) 
+				AddTooltipToDisabledButton(ColoredHPButton, "Color in red the Health Bars for enemy players (if Class Health Bars is enabled)")
+			end
         end)
-    ColoredHPButton:SetPoint("TOPLEFT", ThickFramesButton, "BOTTOMLEFT", -300, 0)
+    ClassBarsButton:SetPoint("TOPLEFT", ThickFramesButton, "BOTTOMLEFT", 200, 27)
+	ClassBarsButton:SetChecked(Lorti.classbars)
+	ClassBarsButton.text:SetTextColor(1, 0.8, 0, 1)
+	
+	ColoredHPButton = CheckBtn("Red health bars", "Color in red the Health Bars for enemy players (if Class Health Bars is enabled)", Panel, function(self, value)
+            if not Lorti.classbars then
+				-- Prevent ColoredHPButton from being checked if ClassBarsButton is not enabled
+				self:SetChecked(false)
+				return
+			end
+			Lorti.ColoredHP = value
+        end)
+    ColoredHPButton:SetPoint("TOPLEFT", ClassBarsButton, "BOTTOMLEFT", 200, 27)
 	ColoredHPButton:SetChecked(Lorti.ColoredHP)
 	ColoredHPButton.text:SetTextColor(1, 0.8, 0, 1)
-	
-	local ClassPortraitsButton = CheckBtn("Class Portraits", "Enable Class Portraits on Target and Focus Frames", Panel, function(self, value)
-            Lorti.ClassPortraits = value
-			UpdateClassPortraitDropdown()
-        end)
-    ClassPortraitsButton:SetPoint("TOPLEFT", ColoredHPButton, "BOTTOMLEFT", 300, 27)
-	ClassPortraitsButton:SetChecked(Lorti.ClassPortraits)
-	ClassPortraitsButton.text:SetTextColor(1, 0.8, 0, 1)
-	
-	local HitindicatorButton = CheckBtn("Hide Hit indicator", "Hide PlayerFrame hit indicator", Panel, function(self, value)
-            Lorti.hitindicator = value
-        end)
-    HitindicatorButton:SetPoint("TOPLEFT", ClassPortraitsButton, "BOTTOMLEFT", -300, 0)
-	HitindicatorButton:SetChecked(Lorti.hitindicator)
-	HitindicatorButton.text:SetTextColor(1, 0.8, 0, 1)
+	-- Initial update of button states
+	if Lorti.classbars then
+		ClassBarsButton:SetChecked(true)
+		ColoredHPButton:Enable()
+		ColoredHPButton.text:SetTextColor(1, 0.8, 0, 1)
+		RemoveTooltipFromButton(ColoredHPButton)
+	else
+		ClassBarsButton:SetChecked(false)
+		ColoredHPButton:Disable()
+		ColoredHPButton:SetChecked(false)
+		ColoredHPButton.text:SetTextColor(0.5, 0.5, 0.5, 1)
+		AddTooltipToDisabledButton(ColoredHPButton, "Color in red the Health Bars for enemy players (if Class Health Bars is enabled)")
+	end
 	
 	local PlayerClassPortraitsButton = CheckBtn("Player Class Portrait", "Enable Class Portrait for the Player Frame only", Panel, function(self, value)
             Lorti.playerClassPortraits = value
 			UpdateClassPortraitDropdown()
         end)
-    PlayerClassPortraitsButton:SetPoint("TOPLEFT", HitindicatorButton, "BOTTOMLEFT", 300, 27)
+    PlayerClassPortraitsButton:SetPoint("TOPLEFT", ColoredHPButton, "BOTTOMLEFT", -400, 0)
 	PlayerClassPortraitsButton:SetChecked(Lorti.playerClassPortraits)
 	PlayerClassPortraitsButton.text:SetTextColor(1, 0.8, 0, 1)
 	
-	 local ActionbarTextureButton = CheckBtn("Hide background", "Hide gryphons and actionbar, menu, bags background", Panel, function(self, value)
-            Lorti.ActionbarTexture = value
+	local ClassPortraitsButton = CheckBtn("Other Class Portraits", "Enable Class Portraits on Target, Focus and Party Frames", Panel, function(self, value)
+            Lorti.ClassPortraits = value
+			UpdateClassPortraitDropdown()
         end)
-    ActionbarTextureButton:SetPoint("TOPLEFT", PlayerClassPortraitsButton, "BOTTOMLEFT", -300, 0)
-	ActionbarTextureButton:SetChecked(Lorti.ActionbarTexture)
-	ActionbarTextureButton.text:SetTextColor(1, 0.8, 0, 1)
+    ClassPortraitsButton:SetPoint("TOPLEFT", PlayerClassPortraitsButton, "BOTTOMLEFT", 0, 0)
+	ClassPortraitsButton:SetChecked(Lorti.ClassPortraits)
+	ClassPortraitsButton.text:SetTextColor(1, 0.8, 0, 1)
 	
-	local EnergyButton = CheckBtn("Energy/Mana ticks", "Enable Energy and/or Mana ticks or both if you are a druid", Panel, function(self, value)
-            Lorti.energytick = value
+	
+	
+	local HitindicatorButton = CheckBtn("Hide Hit indicator", "Hide PlayerFrame hit indicator", Panel, function(self, value)
+            Lorti.hitindicator = value
         end)
-    EnergyButton:SetPoint("TOPLEFT", ActionbarTextureButton, "BOTTOMLEFT", 300, 27)
-	EnergyButton:SetChecked(Lorti.energytick)
-	EnergyButton.text:SetTextColor(1, 0.8, 0, 1)
+    HitindicatorButton:SetPoint("TOPLEFT", ClassPortraitsButton, "BOTTOMLEFT", 0, -5)
+	HitindicatorButton:SetChecked(Lorti.hitindicator)
+	HitindicatorButton.text:SetTextColor(1, 0.8, 0, 1)
 	
 	local PlayernameButton = CheckBtn("Hide player name", "Hide the name of the Player unit frame", Panel, function(self, value)
             Lorti.playername = value
         end)
-    PlayernameButton:SetPoint("TOPLEFT", EnergyButton, "BOTTOMLEFT", -300, 0)
+    PlayernameButton:SetPoint("TOPLEFT", HitindicatorButton, "BOTTOMLEFT", 200, 27)
 	PlayernameButton:SetChecked(Lorti.playername)
 	PlayernameButton.text:SetTextColor(1, 0.8, 0, 1)
-	
-	local RangecolorButton = CheckBtn("Range Color", "Color your action buttons when out of range or out of mana", Panel, function(self, value)
-            Lorti.rangecolor = value
-        end)
-    RangecolorButton:SetPoint("TOPLEFT", PlayernameButton, "BOTTOMLEFT", 300, 27)
-	RangecolorButton:SetChecked(Lorti.rangecolor)
-	RangecolorButton.text:SetTextColor(1, 0.8, 0, 1)
-	
-	
-	local KeypressButton = CheckBtn("Cast spells on key down", "Enable cast spells when you press on your keyboard instead of when you release it, like the addon SnowFallKey", Panel, function(self, value)
-            Lorti.keypress = value
-        end)
-    KeypressButton:SetPoint("TOPLEFT", RangecolorButton, "BOTTOMLEFT", -300, 0)
-	KeypressButton:SetChecked(Lorti.keypress)
-	KeypressButton.text:SetTextColor(1, 0.8, 0, 1)
 	
 	local NumericalButton = CheckBtn("Shorten numeric value", "Display current health instead of current health/max health, and shorten NUMERIC HP to one decimal", Panel, function(self, value)
             Lorti.numerical = value
         end)
-    NumericalButton:SetPoint("TOPLEFT", KeypressButton, "BOTTOMLEFT", 300, 27)
+    NumericalButton:SetPoint("TOPLEFT", PlayernameButton, "BOTTOMLEFT", 200, 27)
 	NumericalButton:SetChecked(Lorti.numerical)
-	NumericalButton.text:SetTextColor(1, 0.8, 0, 1)
+	NumericalButton.text:SetTextColor(1, 0.8, 0, 1) 
+	
+	local EnergyButton = CheckBtn("Energy/Mana ticks", "Enable Energy and/or Mana ticks or both if you are a druid", Panel, function(self, value)
+            Lorti.energytick = value
+        end)
+    EnergyButton:SetPoint("TOPLEFT", HitindicatorButton, "BOTTOMLEFT", 0, 0)
+	EnergyButton:SetChecked(Lorti.energytick)
+	EnergyButton.text:SetTextColor(1, 0.8, 0, 1)
+	
+	local ApplyblackButton = CheckBtn("Black borders", "Apply black border on all frames, recommended if you don't use blp files, but i advice you the blp files.", Panel, function(self, value)
+            Lorti.applyblackborder = value
+        end)
+    ApplyblackButton:SetPoint("TOPLEFT", EnergyButton, "BOTTOMLEFT", 200, 27)
+	ApplyblackButton:SetChecked(Lorti.applyblackborder)
+	ApplyblackButton.text:SetTextColor(1, 0.8, 0, 1)
+	
+	local SeparatorUnitFrames = Panel:CreateTexture(nil, "BACKGROUND")
+	SeparatorUnitFrames:SetSize(600, 1) 
+	SeparatorUnitFrames:SetPoint("TOPLEFT", EnergyButton, "BOTTOMLEFT", -15, -110)
+	SeparatorUnitFrames:SetColorTexture(0.3, 0.3, 0.3, 1) 
+	
+	local OtherTitle = Panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    OtherTitle:SetPoint("TOPLEFT", SeparatorUnitFrames, "BOTTOMLEFT", 35, -10) 
+    OtherTitle:SetText("Other:")
+	OtherTitle:SetTextColor(0, 0.8, 1, 1)
+	
+	local SwitchtimerButton = CheckBtn("Buff timer position", "Use Blizzard's default Buff timer position on player's Buffs and Debuffs", Panel, function(self, value)
+            Lorti.switchtimer = value
+        end)
+    SwitchtimerButton:SetPoint("TOPLEFT", OtherTitle, "BOTTOMLEFT", -20, -5) 
+	SwitchtimerButton:SetChecked(Lorti.switchtimer)
+	SwitchtimerButton.text:SetTextColor(1, 0.8, 0, 1)
+	
+	local BigbuffButton = CheckBtn("Scale Player buffs", "Change the size of the Player's BuffFrame to 1.6", Panel, function(self, value)
+            Lorti.bigbuff = value
+        end)
+    BigbuffButton:SetPoint("TOPLEFT", SwitchtimerButton, "BOTTOMLEFT", 200, 27) 
+	BigbuffButton:SetChecked(Lorti.bigbuff)
+	BigbuffButton.text:SetTextColor(1, 0.8, 0, 1)
 	
 	local ArenaframeButton = CheckBtn("Remove Arena Frames", "Remove default arena frames in arena", Panel, function(self, value)
             Lorti.arenaframe = value
         end)
-    ArenaframeButton:SetPoint("TOPLEFT", NumericalButton, "BOTTOMLEFT", -300, 0)
+    ArenaframeButton:SetPoint("TOPLEFT", BigbuffButton, "BOTTOMLEFT", 200, 27)
 	ArenaframeButton:SetChecked(Lorti.arenaframe)
 	ArenaframeButton.text:SetTextColor(1, 0.8, 0, 1)
 	
@@ -388,20 +508,33 @@ function f:CreateGUI()
 	RaidBuffButton.text:SetTextColor(1, 0.8, 0, 1) ]]
 	
 	
-	local Separator = Panel:CreateTexture(nil, "BACKGROUND")
+	--[[ local Separator = Panel:CreateTexture(nil, "BACKGROUND")
 	Separator:SetSize(500, 1) 
-	Separator:SetPoint("TOPLEFT", ArenaframeButton, "BOTTOMLEFT", 10, -10)
-	Separator:SetColorTexture(0.3, 0.3, 0.3, 1) 
+	Separator:SetPoint("TOPLEFT", SwitchtimerButton, "BOTTOMLEFT", 30, -10)
+	Separator:SetColorTexture(0.3, 0.3, 0.3, 1) ]]
+	
+	local function AddDropdownTooltip(dropdown, tooltipText)
+		dropdown:SetScript("OnEnter", function(self)
+			GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+			GameTooltip:SetText(tooltipText, 1, 0.8, 0.3) -- Yellowish color for tooltips
+			GameTooltip:Show()
+		end)
+
+		dropdown:SetScript("OnLeave", function(self)
+			GameTooltip:Hide()
+		end)
+	end
 	
 	-- Player Frame Selector Title
     local playerFrameTitle = Panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    playerFrameTitle:SetPoint("TOPLEFT", Separator, "BOTTOMLEFT", 30, -10) 
-    playerFrameTitle:SetText("Player Frame Style:")
+    playerFrameTitle:SetPoint("TOPLEFT", ClassPortraitsButton, "BOTTOMLEFT", 400, 0) 
+    playerFrameTitle:SetText("")
 	
 	local playerFrameSelect = LibDD:Create_UIDropDownMenu("playerFrameSelect", Panel)
 	playerFrameSelect:ClearAllPoints()
-	playerFrameSelect:SetPoint("TOPLEFT", playerFrameTitle, "BOTTOMLEFT", -40, -10) 
-
+	playerFrameSelect:SetPoint("TOPLEFT", playerFrameTitle, "BOTTOMLEFT", -15, 53) 
+	AddDropdownTooltip(playerFrameSelect, "Select the style of the chain around the Player Frame.")
+	
 	local playerFrameList = {
 		"Normal",
 		"Elite",
@@ -440,14 +573,15 @@ function f:CreateGUI()
 	
 	-- Add a label for the font selector
 	local fontLabel = Panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-	fontLabel:SetPoint("TOPLEFT", playerFrameSelect, "BOTTOMLEFT", 400, 54)
-	fontLabel:SetText("Font select:")
-
+	fontLabel:SetPoint("TOPLEFT", EnergyButton, "BOTTOMLEFT", 30, 0)
+	fontLabel:SetText("")
+	
 	-- Create the dropdown menu for fonts.
 	local fontSelector = LibDD:Create_UIDropDownMenu("fontSelector", Panel)
 	fontSelector:ClearAllPoints()
 	fontSelector:SetPoint("TOPLEFT", fontLabel, "BOTTOMLEFT", -40, -10)
-
+	AddDropdownTooltip(fontSelector, "Choose a font for Health and Mana text.")
+	
 	local fontList = {
 		"Accidental Presidency",
 		"Action_Man",
@@ -551,14 +685,15 @@ function f:CreateGUI()
 	
 	-- Status Bar Texture Selector Title
 	local statusBarTitle = Panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-	statusBarTitle:SetPoint("TOPLEFT", playerFrameSelect, "BOTTOMLEFT", 220, 54) 
-	statusBarTitle:SetText("Status Bar Texture:")
+	statusBarTitle:SetPoint("TOPLEFT", ClassPortraitsButton, "BOTTOMLEFT", 400,50) 
+	statusBarTitle:SetText("")
 
 	-- Create the dropdown menu
 	local statusBarSelect = LibDD:Create_UIDropDownMenu("statusBarSelect", Panel)
 	statusBarSelect:ClearAllPoints()
-	statusBarSelect:SetPoint("TOPLEFT", statusBarTitle, "BOTTOMLEFT", -40, -10)
-
+	statusBarSelect:SetPoint("TOPLEFT", statusBarTitle, "BOTTOMLEFT", -15, -23)
+	AddDropdownTooltip(statusBarSelect, "Select the texture for all the Unit Frames status bars.")
+	
 	local statusBarTextures = {
 		"Whoa",
 		"Blizzard",
@@ -679,14 +814,15 @@ function f:CreateGUI()
 	
 	-- Class Portrait Selector Title
 	local classPortraitTitle = Panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-	classPortraitTitle:SetPoint("TOPLEFT", ArenaframeButton, "BOTTOMLEFT", 300, 27)
-	classPortraitTitle:SetText("Target/Focus/Party Class Portrait texture:")
+	classPortraitTitle:SetPoint("TOPLEFT", ClassPortraitsButton, "BOTTOMLEFT", 200, 50)
+	classPortraitTitle:SetText("")
 
 	-- Create the dropdown menu
 	local classPortraitSelect = LibDD:Create_UIDropDownMenu("classPortraitSelect", Panel)
 	classPortraitSelect:ClearAllPoints()
-	classPortraitSelect:SetPoint("TOPLEFT", classPortraitTitle, "BOTTOMLEFT", -40, -10)
-
+	classPortraitSelect:SetPoint("TOPLEFT", classPortraitTitle, "BOTTOMLEFT", -15, -23)
+	AddDropdownTooltip(classPortraitSelect, "Choose the class portrait texture for Target, Focus and Party Frames.")
+	
 	-- List of available class portrait sets
 	local classPortraitSets = {
 		"High Definition",
@@ -737,14 +873,15 @@ function f:CreateGUI()
 	
 	-- Player Class Portrait Selector Title
 	local playerClassPortraitTitle = Panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-	playerClassPortraitTitle:SetPoint("TOPLEFT", classPortraitSelect, "BOTTOMLEFT", 40, -20)
-	playerClassPortraitTitle:SetText("Player Class Portrait texture:")
+	playerClassPortraitTitle:SetPoint("TOPLEFT", PlayerClassPortraitsButton, "BOTTOMLEFT", 200, 50)
+	playerClassPortraitTitle:SetText("")
 
 	-- Create the dropdown menu for Player
 	local playerClassPortraitSelect = LibDD:Create_UIDropDownMenu("playerClassPortraitSelect", Panel)
 	playerClassPortraitSelect:ClearAllPoints()
-	playerClassPortraitSelect:SetPoint("TOPLEFT", playerClassPortraitTitle, "BOTTOMLEFT", -40, -10)
-
+	playerClassPortraitSelect:SetPoint("TOPLEFT", playerClassPortraitTitle, "BOTTOMLEFT", -15, -23)
+	AddDropdownTooltip(playerClassPortraitSelect, "Choose the class portrait texture for the Player Frame.")
+	
 	-- Function to handle selection for Player
 	local function OnPlayerClassPortraitClick(self)
 		LibDD:UIDropDownMenu_SetSelectedID(playerClassPortraitSelect, self:GetID())
@@ -783,13 +920,15 @@ function f:CreateGUI()
 
 	-- Name Size
 	local StringSizeTitle = Panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-	StringSizeTitle:SetPoint("TOPLEFT", playerFrameSelect, "BOTTOMLEFT", 70, -15)
-	StringSizeTitle:SetText("Name Text Font Size:")
+	StringSizeTitle:SetPoint("TOPLEFT", fontSelector, "BOTTOMLEFT", 223, 45)
+	-- StringSizeTitle:SetText("")
+	StringSizeTitle:SetText("Name Text Font Size:")  
 	
 	local name = "StringSizeSlider"
         local template = "OptionsSliderTemplate"
         local StringSizeSlider = CreateFrame("Slider", name, Panel, template)
-        StringSizeSlider:SetPoint("TOPLEFT", StringSizeTitle, "BOTTOMLEFT", -10, -17)
+       -- StringSizeSlider:SetPoint("TOPLEFT", StringSizeTitle, "BOTTOMLEFT", 15, -23)
+		StringSizeSlider:SetPoint("TOPLEFT", StringSizeTitle, "BOTTOMLEFT", -10, -15)
         StringSizeSlider.textLow = _G[name.."Low"]
         StringSizeSlider.textHigh = _G[name.."High"]
         StringSizeSlider.text = _G[name.."Text"]
@@ -806,16 +945,19 @@ function f:CreateGUI()
             Lorti.StringSize = StringSizeSlider:GetValue()
             ApplyFonts()
         end)
-	
+		AddTooltipToSlider(StringSizeSlider, "Adjust the font size of the unit frame names.")
+		
 	-- Numerical size
 	local NumSizeTitle = Panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-	NumSizeTitle:SetPoint("TOPLEFT", StringSizeTitle, "BOTTOMLEFT", 230, 12)
+	NumSizeTitle:SetPoint("TOPLEFT", StringSizeTitle, "BOTTOMLEFT", 190, 12)
+	-- NumSizeTitle:SetText("")
 	NumSizeTitle:SetText("Numericals Text Font Size:")
 	
 	local name = "NumSizeSlider"
         local template = "OptionsSliderTemplate"
         local NumSizeSlider = CreateFrame("Slider", name, Panel, template)
-        NumSizeSlider:SetPoint("TOPLEFT", NumSizeTitle, "BOTTOMLEFT", -10, -17)
+        -- NumSizeSlider:SetPoint("TOPLEFT", NumSizeTitle, "BOTTOMLEFT", -15, -34)
+		NumSizeSlider:SetPoint("TOPLEFT", NumSizeTitle, "BOTTOMLEFT", 5, -15)
         NumSizeSlider.textLow = _G[name.."Low"]
         NumSizeSlider.textHigh = _G[name.."High"]
         NumSizeSlider.text = _G[name.."Text"]
@@ -832,14 +974,14 @@ function f:CreateGUI()
             Lorti.NumSize = NumSizeSlider:GetValue()
             ApplyFonts()
         end)
-	
+		AddTooltipToSlider(NumSizeSlider, "Adjust the font size of numerical values (e.g., health and mana).")
 		-- Frames centering / restore.
 
 		-- Create a font string for the positioning options title.
 		local positionOptions = Panel:CreateFontString("mainOptions", "OVERLAY", "GameFontNormal")
 		positionOptions:SetFont("Fonts\\FRIZQT__.TTF", 14, "OUTLINE")
 		positionOptions:SetText("Positioning options:")
-		positionOptions:SetPoint("TOPLEFT", StringSizeTitle, "BOTTOMLEFT", 0, -82)
+		positionOptions:SetPoint("TOPLEFT", SwitchtimerButton, "BOTTOMLEFT", 150, -10)
 
 		-- Create a font string for additional info.
 		local centerBttnInfo = Panel:CreateFontString("centerBttnInfo", "OVERLAY", "GameFontNormal")
@@ -874,11 +1016,13 @@ function f:CreateGUI()
 		
 		-- Player/Target/Focus Frame Scale Slider
     local FrameScaleTitle = Panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    FrameScaleTitle:SetPoint("TOPLEFT", StringSizeTitle, "BOTTOMLEFT", 0, -40)
-    FrameScaleTitle:SetText("Player/Target/Focus Frame Scale:")
-
+    FrameScaleTitle:SetPoint("TOPLEFT", fontSelector, "BOTTOMLEFT", 10, -10)
+    -- FrameScaleTitle:SetText("")
+	FrameScaleTitle:SetText("Player/Target/Focus Scale:")
+	
     local FrameScaleSlider = CreateFrame("Slider", "FrameScaleSlider", Panel, "OptionsSliderTemplate")
-    FrameScaleSlider:SetPoint("TOPLEFT", FrameScaleTitle, "BOTTOMLEFT", -10, -17)
+    -- FrameScaleSlider:SetPoint("TOPLEFT", FrameScaleTitle, "BOTTOMLEFT", 20, -17)
+	FrameScaleSlider:SetPoint("TOPLEFT", FrameScaleTitle, "BOTTOMLEFT", 10, -15)
     FrameScaleSlider.textLow = _G["FrameScaleSliderLow"]
     FrameScaleSlider.textHigh = _G["FrameScaleSliderHigh"]
     FrameScaleSlider.text = _G["FrameScaleSliderText"]
@@ -896,15 +1040,17 @@ function f:CreateGUI()
         TargetFrame:SetScale(value)
         FocusFrame:SetScale(value)
     end)
-	
+	AddTooltipToSlider(FrameScaleSlider, "Adjust the scale of the Player, Target, and Focus frames.")
 	
 	-- Party Frame Scale Slider
     local PartyFrameScaleTitle = Panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    PartyFrameScaleTitle:SetPoint("TOPLEFT", FrameScaleTitle, "BOTTOMLEFT", 200, 10)
-    PartyFrameScaleTitle:SetText("Party Frames Scale:")
-
+    PartyFrameScaleTitle:SetPoint("TOPLEFT", FrameScaleTitle, "BOTTOMLEFT", 215, 10)
+    -- PartyFrameScaleTitle:SetText("")
+	PartyFrameScaleTitle:SetText("Party Frames Scale:")
+	
     local PartyFrameScaleSlider = CreateFrame("Slider", "PartyFrameScaleSlider", Panel, "OptionsSliderTemplate")
-    PartyFrameScaleSlider:SetPoint("TOPLEFT", PartyFrameScaleTitle, "BOTTOMLEFT", -10, -17)
+    -- PartyFrameScaleSlider:SetPoint("TOPLEFT", PartyFrameScaleTitle, "BOTTOMLEFT", 13, -25)
+	PartyFrameScaleSlider:SetPoint("TOPLEFT", PartyFrameScaleTitle, "BOTTOMLEFT", -13, -15)
     PartyFrameScaleSlider.textLow = _G["PartyFrameScaleSliderLow"]
     PartyFrameScaleSlider.textHigh = _G["PartyFrameScaleSliderHigh"]
     PartyFrameScaleSlider.text = _G["PartyFrameScaleSliderText"]
@@ -925,6 +1071,8 @@ function f:CreateGUI()
             end
         end
     end)
+	AddTooltipToSlider(PartyFrameScaleSlider, "Adjust the scale of the Party frames.")
+	
 	end
 	return Panel
 end
