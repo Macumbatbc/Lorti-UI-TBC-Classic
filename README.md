@@ -41,6 +41,10 @@ https://github.com/Macumbatbc/SolaceBuffDisplay
 
 ![17401549089335328481217869266882](https://github.com/user-attachments/assets/558311e7-5752-47f9-89dd-aea52f56fbb9)
 
+If you want fade out feature on default unit frames, look at BlizzFader 
+
+![17401555053012203897927002478402](https://github.com/user-attachments/assets/b4a21e49-d004-46a6-9aa2-3af321bdd44b)
+
 ## Screen
 Glossy buttons
 
