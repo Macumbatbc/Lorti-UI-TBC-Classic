@@ -287,7 +287,9 @@ function f:CreateGUI()
     ActionBarTitle:SetPoint("TOPLEFT", SeparatorTitle, "BOTTOMLEFT", 40, -10) 
     ActionBarTitle:SetText("Action Bar:")
 	ActionBarTitle:SetTextColor(0, 0.8, 1, 1)
-	
+	ActionBarTitle:SetShadowColor(0, 0, 0) 
+	ActionBarTitle:SetShadowOffset(1, -1) 
+		
 	local HotKeyButton = CheckBtn("Hide hotkeys", "Hide hotkeys on action bars", Panel, function(self, value)
             Lorti.keyhide = value
         end)
@@ -355,6 +357,8 @@ function f:CreateGUI()
     UnitFrameTitle:SetPoint("TOPLEFT", SeparatorActionBar, "BOTTOMLEFT", 35, -10) 
     UnitFrameTitle:SetText("Unit Frames:")
 	UnitFrameTitle:SetTextColor(0, 0.8, 1, 1)
+	UnitFrameTitle:SetShadowColor(0, 0, 0) 
+	UnitFrameTitle:SetShadowOffset(1, -1) 
 	
 	local ThickFramesButton = CheckBtn("Thick Frames", "Bigger Frames", Panel, function(self, value)
             Lorti.thickness = value
@@ -469,6 +473,8 @@ function f:CreateGUI()
     OtherTitle:SetPoint("TOPLEFT", SeparatorUnitFrames, "BOTTOMLEFT", 35, -10) 
     OtherTitle:SetText("Other:")
 	OtherTitle:SetTextColor(0, 0.8, 1, 1)
+	OtherTitle:SetShadowColor(0, 0, 0) 
+	OtherTitle:SetShadowOffset(1, -1) 
 	
 	local SwitchtimerButton = CheckBtn("Buff timer position", "Use Blizzard's default Buff timer position on player's Buffs and Debuffs", Panel, function(self, value)
             Lorti.switchtimer = value
