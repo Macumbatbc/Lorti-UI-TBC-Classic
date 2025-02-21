@@ -1,5 +1,5 @@
 # Lorti-UI-TBC-Classic
-Modified LortiUI for TBC classic with a GUI
+Modified and enhanced LortiUI for TBC classic with a GUI
 
 ## Features
 ![image](https://github.com/user-attachments/assets/157a73c1-75f3-4596-9d6b-f482e3ff188b)
