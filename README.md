@@ -87,7 +87,7 @@ https://github.com/Macumbatbc/FocusComboFrame
 If you are looking for an addon which add an icon when your target/focus is in combat, check CombatIndicator addon
 https://github.com/Macumbatbc/CombatIndicator
 
-![image](https://github.com/user-attachments/assets/7396a236-5194-4ef4-a441-cf1336ab2a6b)
+![image](https://github.com/user-attachments/assets/1a05ef81-53c0-431e-88de-dc0d79da0b4d)
 
 
 ## Credit
