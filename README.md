@@ -36,6 +36,9 @@ Modified and enhanced LortiUI for TBC classic with a GUI
 - Remove Arena Frames
 - Positioning option : Let you center player and target frames on middle screen
 
+If you use default party frames and want to display buff on party without to mouse over hover party frames i advice you SolaceBuffDisplay addon
+https://github.com/Macumbatbc/SolaceBuffDisplay
+
 ## Screen
 Glossy buttons
 
