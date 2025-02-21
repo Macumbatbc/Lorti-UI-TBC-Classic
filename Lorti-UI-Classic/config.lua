@@ -25,7 +25,7 @@
     hover             = "Interface\\AddOns\\Lorti-UI-Classic\\textures\\hover",
     pushed            = "Interface\\AddOns\\Lorti-UI-Classic\\textures\\pushed",
     checked           = "Interface\\AddOns\\Lorti-UI-Classic\\textures\\checked",
-    equipped          = "Interface\\AddOns\\Lorti-UI-Classic\\textures\\gloss_grey",
+    equipped          = "Interface\\AddOns\\Lorti-UI-Classic\\textures\\gloss_green",
     buttonback        = "Interface\\AddOns\\Lorti-UI-Classic\\textures\\button_background",
     buttonbackflat    = "Interface\\AddOns\\Lorti-UI-Classic\\textures\\button_background_flat",
     outer_shadow      = "Interface\\AddOns\\Lorti-UI-Classic\\textures\\outer_shadow",

@@ -4,7 +4,10 @@
 ## Title: Lorti-UI-Classic
 ## Notes: Darkens the default UI. Updated for Classic by Chordsy and modified by Macumba and his friends.
 ## OptionalDeps: WideQuestLog
+
 ## SavedVariablesPerCharacter: Lorti, LortiDB
+
+libs\LibUIDropDownMenu\LibUIDropDownMenu.xml
 
 config.lua
 core\settings.lua
