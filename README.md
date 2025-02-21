@@ -36,25 +36,6 @@ Modified and enhanced LortiUI for TBC classic with a GUI
 - Remove Arena Frames
 - Positioning option : Let you center player and target frames on middle screen
 
-If you use default party frames and want to display buff on party without to mouse over hover party frames i advice you SolaceBuffDisplay addon
-https://github.com/Macumbatbc/SolaceBuffDisplay
-
-![17401549089335328481217869266882](https://github.com/user-attachments/assets/558311e7-5752-47f9-89dd-aea52f56fbb9)
-
-If you want fade out feature on default unit frames, look at BlizzFader 
-https://github.com/Macumbatbc/BlizzFader
-
-![17401555053012203897927002478402](https://github.com/user-attachments/assets/b4a21e49-d004-46a6-9aa2-3af321bdd44b)
-
-You can get an eye at SantaUI for a custom action bar addon
-https://github.com/Macumbatbc/SantaUI
-
-![17401562186228828115732556643447](https://github.com/user-attachments/assets/f1c9f0fb-61bd-4350-bc13-210dd99cde64)
-
-To get Combo Points on Focus Frame add FocusComboFrame addon
-https://github.com/Macumbatbc/FocusComboFrame
-
-![1740163522181413397586187941779](https://github.com/user-attachments/assets/17526b9f-4609-4164-a457-844ef6192337)
 
 ## LortiUI Screens
 Glossy buttons
@@ -80,6 +61,34 @@ Druid mana bar
 Frames in middle screen + mana ticks
 
 ![image](https://github.com/user-attachments/assets/3d55c161-4e81-4c24-bb99-ae6090479f82)
+
+
+## Other addons for default Unit Frames
+If you use default party frames and want to display buff on party without to mouse over hover party frames i advice you SolaceBuffDisplay addon
+https://github.com/Macumbatbc/SolaceBuffDisplay
+
+![17401549089335328481217869266882](https://github.com/user-attachments/assets/558311e7-5752-47f9-89dd-aea52f56fbb9)
+
+If you want fade out feature on default unit frames, look at BlizzFader 
+https://github.com/Macumbatbc/BlizzFader
+
+![17401555053012203897927002478402](https://github.com/user-attachments/assets/b4a21e49-d004-46a6-9aa2-3af321bdd44b)
+
+You can get an eye at SantaUI for a custom action bar addon
+https://github.com/Macumbatbc/SantaUI
+
+![17401562186228828115732556643447](https://github.com/user-attachments/assets/f1c9f0fb-61bd-4350-bc13-210dd99cde64)
+
+To get Combo Points on Focus Frame add FocusComboFrame addon
+https://github.com/Macumbatbc/FocusComboFrame
+
+![1740163522181413397586187941779](https://github.com/user-attachments/assets/17526b9f-4609-4164-a457-844ef6192337)
+
+If you are looking for an addon which add an icon when your target/focus is in combat, check CombatIndicator addon
+https://github.com/Macumbatbc/CombatIndicator
+
+![image](https://github.com/user-attachments/assets/7396a236-5194-4ef4-a441-cf1336ab2a6b)
+
 
 ## Credit
 For all the unit frames addon i used :
