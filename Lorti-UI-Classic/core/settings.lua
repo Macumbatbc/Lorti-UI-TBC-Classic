@@ -310,14 +310,14 @@ function f:CreateGUI()
 	MacroButton:SetChecked(Lorti.macrohide)
 	MacroButton.text:SetTextColor(1, 0.8, 0, 1)
 	
-	local GlossyButton = CheckBtn("Gloss on buttons", "Enable High Gloss on action bars buttons", Panel, function(self, value)
+	local GlossyButton = CheckBtn("Glossy buttons", "Enable High Gloss on action bars buttons", Panel, function(self, value)
             Lorti.gloss = value
         end)
     GlossyButton:SetPoint("TOPLEFT", MacroButton, "BOTTOMLEFT", -400, 0)
 	GlossyButton:SetChecked(Lorti.gloss)
 	GlossyButton.text:SetTextColor(1, 0.8, 0, 1)
 	
-	local ActionbarTextureButton = CheckBtn("Hide background", "Hide gryphons and actionbar, menu, bags background", Panel, function(self, value)
+	local ActionbarTextureButton = CheckBtn("Hide background", "Hide gryphons, actionbar, menu and bags background", Panel, function(self, value)
             Lorti.ActionbarTexture = value
         end)
     ActionbarTextureButton:SetPoint("TOPLEFT", GlossyButton, "BOTTOMLEFT", 200, 27)
@@ -356,7 +356,7 @@ function f:CreateGUI()
     UnitFrameTitle:SetText("Unit Frames:")
 	UnitFrameTitle:SetTextColor(0, 0.8, 1, 1)
 	
-	local ThickFramesButton = CheckBtn("Thick Frames", "Thick Frames", Panel, function(self, value)
+	local ThickFramesButton = CheckBtn("Thick Frames", "Bigger Frames", Panel, function(self, value)
             Lorti.thickness = value
         end)
     ThickFramesButton:SetPoint("TOPLEFT", UnitFrameTitle, "BOTTOMLEFT", -20, -5)
@@ -364,7 +364,7 @@ function f:CreateGUI()
 	ThickFramesButton.text:SetTextColor(1, 0.8, 0, 1)
 	
 	local ColoredHPButton
-	local ClassBarsButton = CheckBtn("Class health bars", "Color the unit frames Health bars based on the class of the players", Panel, function(self, value)
+	local ClassBarsButton = CheckBtn("Class health bars", "Color the unit frames Health bars based on the class", Panel, function(self, value)
             Lorti.classbars = value
 			Lorti.ColoredHP = false
 			if value then
@@ -382,7 +382,7 @@ function f:CreateGUI()
 	ClassBarsButton:SetChecked(Lorti.classbars)
 	ClassBarsButton.text:SetTextColor(1, 0.8, 0, 1)
 	
-	ColoredHPButton = CheckBtn("Red health bars", "Color in red the Health Bars for enemy players (if Class Health Bars is enabled)", Panel, function(self, value)
+	ColoredHPButton = CheckBtn("Red health bars", "Disable class health bars for enemies players (if Class Health Bars is enabled)", Panel, function(self, value)
             if not Lorti.classbars then
 				-- Prevent ColoredHPButton from being checked if ClassBarsButton is not enabled
 				self:SetChecked(false)
