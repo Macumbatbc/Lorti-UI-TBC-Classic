@@ -39,6 +39,8 @@ Modified and enhanced LortiUI for TBC classic with a GUI
 If you use default party frames and want to display buff on party without to mouse over hover party frames i advice you SolaceBuffDisplay addon
 https://github.com/Macumbatbc/SolaceBuffDisplay
 
+![17401549089335328481217869266882](https://github.com/user-attachments/assets/558311e7-5752-47f9-89dd-aea52f56fbb9)
+
 ## Screen
 Glossy buttons
 
