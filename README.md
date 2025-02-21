@@ -51,6 +51,11 @@ https://github.com/Macumbatbc/SantaUI
 
 ![17401562186228828115732556643447](https://github.com/user-attachments/assets/f1c9f0fb-61bd-4350-bc13-210dd99cde64)
 
+To get Combo Points on Focus Frame add FocusComboFrame addon
+https://github.com/Macumbatbc/FocusComboFrame
+
+![1740163522181413397586187941779](https://github.com/user-attachments/assets/17526b9f-4609-4164-a457-844ef6192337)
+
 ## LortiUI Screens
 Glossy buttons
 
