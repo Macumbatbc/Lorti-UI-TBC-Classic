@@ -63,8 +63,8 @@ Frames in middle screen + mana ticks
 
 ## Credit
 For all the unit frames addon i used :
-RougeUI : Xyz
-DarkModeUI
-WhoaThickFrames
-UberUI
+- RougeUI : Xyz for all the help since classic
+- DarkModeUI
+- WhoaThickFrames
+- UberUI
 
