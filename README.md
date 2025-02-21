@@ -46,6 +46,11 @@ https://github.com/Macumbatbc/BlizzFader
 
 ![17401555053012203897927002478402](https://github.com/user-attachments/assets/b4a21e49-d004-46a6-9aa2-3af321bdd44b)
 
+You can get an eye at SantaUI for a custom action bar addon
+https://github.com/Macumbatbc/SantaUI
+
+![17401562186228828115732556643447](https://github.com/user-attachments/assets/f1c9f0fb-61bd-4350-bc13-210dd99cde64)
+
 ## Screen
 Glossy buttons
 
