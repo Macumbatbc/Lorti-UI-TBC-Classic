@@ -1,0 +1,8 @@
+	"High Definition",
+	"RougeUI",
+	"Modern",
+	"KkthnxUI",
+	"Hearthstone",
+    	"ElvUI",
+    	"Experimental",
+    	"Crests",
