@@ -51,7 +51,7 @@ https://github.com/Macumbatbc/SantaUI
 
 ![17401562186228828115732556643447](https://github.com/user-attachments/assets/f1c9f0fb-61bd-4350-bc13-210dd99cde64)
 
-## Screen
+## LortiUI Screens
 Glossy buttons
 
 ![image](https://github.com/user-attachments/assets/fd353cbc-cc5c-4ef3-8c3d-466eac7eb7f3)
