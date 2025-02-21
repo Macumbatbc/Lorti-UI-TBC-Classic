@@ -38,21 +38,27 @@ Modified LortiUI for TBC classic with a GUI
 
 ## Screen
 Glossy buttons
+
 ![image](https://github.com/user-attachments/assets/fd353cbc-cc5c-4ef3-8c3d-466eac7eb7f3)
 
 Thick Frames + chain + different class portrait on player and target frames
+
 ![image](https://github.com/user-attachments/assets/8f8e1542-3247-424b-9bfb-7ba52980525a)
 
 Shorten value + Party Frames
+
 ![image](https://github.com/user-attachments/assets/6f9ba865-6e3a-4da4-b1cf-cf7ffd27a79a)
 
 Raid frame
+
 ![image](https://github.com/user-attachments/assets/3875e168-3023-4dbf-b681-7bc46b7dee33)
 
 Druid mana bar
+
 ![image](https://github.com/user-attachments/assets/70620303-b64a-4190-a615-0407be366cbb)
 
-Frames in middle screen
+Frames in middle screen + mana ticks
+
 ![image](https://github.com/user-attachments/assets/3d55c161-4e81-4c24-bb99-ae6090479f82)
 
 ## Credit
