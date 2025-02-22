@@ -1155,7 +1155,22 @@ if ArenaEnemyFrame1 then
 ArenaEnemyFrame1HealthBarText:SetShadowOffset(1,-1)
 ArenaEnemyFrame1HealthBarText:SetShadowColor(0,0,0)
 end
-	
+if ArenaEnemyFrame2 then
+ArenaEnemyFrame2HealthBarText:SetShadowOffset(1,-1)
+ArenaEnemyFrame2HealthBarText:SetShadowColor(0,0,0)
+end
+if ArenaEnemyFrame3 then
+ArenaEnemyFrame3HealthBarText:SetShadowOffset(1,-1)
+ArenaEnemyFrame3HealthBarText:SetShadowColor(0,0,0)
+end
+if ArenaEnemyFrame4 then
+ArenaEnemyFrame4HealthBarText:SetShadowOffset(1,-1)
+ArenaEnemyFrame4HealthBarText:SetShadowColor(0,0,0)
+end
+if ArenaEnemyFrame5 then
+ArenaEnemyFrame5HealthBarText:SetShadowOffset(1,-1)
+ArenaEnemyFrame5HealthBarText:SetShadowColor(0,0,0)
+end
 --Minimap Alignment & Hiding World Map Button and Top Border
 
 MiniMapWorldMapButton:SetAlpha(0)
@@ -1731,7 +1746,7 @@ function ApplyFonts()
 			end
 		end
 	else
-		ArenaEnemyFrames:Hide()
+		ArenaEnemyFrames:SetAlpha(0)
 	end
 end
 
