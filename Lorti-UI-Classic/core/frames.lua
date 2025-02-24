@@ -2309,6 +2309,7 @@ if Lorti.energytick then
         "UNIT_SPELLCAST_SUCCEEDED"
     }
 
+    -- Global Variables
     local last_energy_tick = GetTime()
     local last_mana_tick = GetTime()
     local last_energy_value = 0
@@ -2317,27 +2318,35 @@ if Lorti.energytick then
     local TimeSinceLastUpdate = 0
     local ONUPDATE_INTERVAL = 0.01
     local manaRegenStartTime = 0
-	local isInFiveSecondRule = false
+    local isInFiveSecondRule = false
 
-	-- Track the start time of mana regeneration delay
-local function OnSpellCastSucceeded()
-    -- Set the start time for the 5-second mana regen delay
-	last_mana_tick = GetTime()
-    manaRegenStartTime = GetTime()
-    isInFiveSecondRule = true
-	-- print("Spell cast detected! Resetting mana tick timer. New last_mana_tick:", last_mana_tick)
-end
+    -- Track the start time of mana regeneration delay
+    local function OnSpellCastSucceeded()
+        -- Set the start time for the 5-second mana regen delay
+        last_mana_tick = GetTime()
+        manaRegenStartTime = GetTime()
+        isInFiveSecondRule = true
+    end
+
     -- Function to set the tick marker position
-    -- Function to set the tick marker position
-local function SetTickValue(self, elapsed, resourceType)
+    local function SetTickValue(self, elapsed, resourceType)
     local x = self:GetWidth() -- Width of the mana bar
     local position = 0
+    local yOffset = 0 -- Default vertical offset
 
     if resourceType == "mana" then
         -- Calculate the spark position based on the elapsed time
-        position = (x * elapsed) / 5.13 -- Use 5-second interval during the delay
-        if not isInFiveSecondRule then
+        if isInFiveSecondRule then
+            position = (x * elapsed) / 6.0 -- Use 5-second interval during the delay (old was 5.13)
+        else
             position = (x * elapsed) / 2.02 -- Use 2-second interval after the delay
+        end
+
+        -- Apply vertical offset for Druids in Bear Form
+        local _, class = UnitClass("player")
+        local powerType = UnitPowerType("player")
+        if class == "DRUID" and powerType == 1 then -- Rage (Bear Form)
+            yOffset = 0 -- Move the spark down if needed
         end
     elseif resourceType == "energy" then
         -- Energy tick logic remains unchanged
@@ -2350,49 +2359,51 @@ local function SetTickValue(self, elapsed, resourceType)
             self.energy.spark:Show()
             self.energy.spark:SetPoint("CENTER", self, "LEFT", position, 0)
         elseif resourceType == "mana" and self.mana then
-            self.mana.spark:Show()
-            self.mana.spark:SetPoint("CENTER", self, "LEFT", position, 0)
+			local currentMana = UnitPower("player", 0)
+            local maxMana = UnitPowerMax("player", 0)
+            if currentMana == maxMana then
+                self.mana.spark:Hide() -- Hide the spark when full mana
+            else
+				self.mana.spark:Show()
+				self.mana.spark:SetPoint("CENTER", self, "LEFT", position, yOffset) -- Apply yOffset here
+			end
         end
     end
 end
 
+    -- OnUpdate function
+    local function OnUpdate(self, elapsed)
+        local time = GetTime()
+        TimeSinceLastUpdate = TimeSinceLastUpdate + elapsed
 
--- OnUpdate function
-local function OnUpdate(self, elapsed)
-    local time = GetTime()
-    TimeSinceLastUpdate = TimeSinceLastUpdate + elapsed
+        if TimeSinceLastUpdate >= ONUPDATE_INTERVAL then
+            TimeSinceLastUpdate = 0
 
-    if TimeSinceLastUpdate >= ONUPDATE_INTERVAL then
-        TimeSinceLastUpdate = 0
+            -- Energy Tick
+            if time >= last_energy_tick + 2.02 then
+                last_energy_tick = time
+            end
+            SetTickValue(self:GetParent(), time - last_energy_tick, "energy")
 
-        -- Energy Tick (unchanged)
-        if time >= last_energy_tick + 2.02 then
-            last_energy_tick = time
+            -- Mana Tick with 5-second rule
+            if isInFiveSecondRule then
+                -- During the 5-second delay, use a 5-second tick interval
+                if time >= last_mana_tick + 6.0 then
+                    last_mana_tick = time
+                end
+                -- End the 5-second rule after 5 seconds
+                if time >= manaRegenStartTime + 6.0 then
+                    isInFiveSecondRule = false
+                end
+            else
+                -- After the delay, resume 2-second mana ticks
+                if time >= last_mana_tick + 2.02 then
+                    last_mana_tick = time
+                end
+            end
+            SetTickValue(self:GetParent(), time - last_mana_tick, "mana")
         end
-        SetTickValue(self:GetParent(), time - last_energy_tick, "energy")
-
-        -- Mana Tick with 5-second rule
-        if isInFiveSecondRule then
-            -- During the 5-second delay, use a 5-second tick interval
-            if time >= last_mana_tick + 5.13 then
-                last_mana_tick = time
-               -- print("Mana tick (5-second rule):", last_mana_tick)
-            end
-            -- End the 5-second rule after 5 seconds
-            if time >= manaRegenStartTime + 5.13 then
-                isInFiveSecondRule = false
-               -- print("5-second rule ended. Resuming normal 2-second ticks.")
-            end
-        else
-            -- After the delay, resume 2-second mana ticks
-            if time >= last_mana_tick + 2.02 then
-                last_mana_tick = time
-               -- print("Mana tick (normal):", last_mana_tick)
-            end
-        end
-        SetTickValue(self:GetParent(), time - last_mana_tick, "mana")
     end
-end
 
     -- Function to update Energy
     local function UpdateEnergy()
@@ -2405,7 +2416,7 @@ end
             return
         end
 
-        if ((energy == last_energy_value + 20 or energy == last_energy_value + 21 or 
+        if ((energy == last_energy_value + 20 or energy == last_energy_value + 21 or
              energy == last_energy_value + 40 or energy == last_energy_value + 41) and energy ~= maxEnergy) then
             last_energy_tick = time
         end
@@ -2435,9 +2446,9 @@ end
     local function AddTicks()
         -- Energy
         if not PlayerFrameManaBar.energy then
-            PlayerFrameManaBar.energy = CreateFrame("Statusbar", "PlayerFrameManaBar_energy", PlayerFrameManaBar)
+            PlayerFrameManaBar.energy = CreateFrame("StatusBar", "PlayerFrameManaBar_energy", PlayerFrameManaBar)
             PlayerFrameManaBar.energy.spark = PlayerFrameManaBar.energy:CreateTexture(nil, "OVERLAY")
-            PlayerFrameManaBar.energy.spark:SetTexture[[Interface\CastingBar\UI-CastingBar-Spark]]
+            PlayerFrameManaBar.energy.spark:SetTexture("Interface\\CastingBar\\UI-CastingBar-Spark")
             PlayerFrameManaBar.energy.spark:SetSize(32, 32)
             PlayerFrameManaBar.energy.spark:SetPoint("CENTER", PlayerFrameManaBar, 0, 0)
             PlayerFrameManaBar.energy.spark:SetBlendMode("ADD")
@@ -2446,9 +2457,9 @@ end
 
         -- Mana
         if not PlayerFrameManaBar.mana then
-            PlayerFrameManaBar.mana = CreateFrame("Statusbar", "PlayerFrameManaBar_mana", PlayerFrameManaBar)
+            PlayerFrameManaBar.mana = CreateFrame("StatusBar", "PlayerFrameManaBar_mana", PlayerFrameManaBar)
             PlayerFrameManaBar.mana.spark = PlayerFrameManaBar.mana:CreateTexture(nil, "OVERLAY")
-            PlayerFrameManaBar.mana.spark:SetTexture[[Interface\CastingBar\UI-CastingBar-Spark]]
+            PlayerFrameManaBar.mana.spark:SetTexture("Interface\\CastingBar\\UI-CastingBar-Spark")
             PlayerFrameManaBar.mana.spark:SetSize(32, 32)
             PlayerFrameManaBar.mana.spark:SetPoint("CENTER", PlayerFrameManaBar, 0, 0)
             PlayerFrameManaBar.mana.spark:SetBlendMode("ADD")
@@ -2463,6 +2474,7 @@ end
         end
     end
 
+    -- Handle External Energize Events
     local function RealTick()
         local _, eventType, _, _, _, sourceFlags, _, _, _, destFlags, _, spellID = CombatLogGetCurrentEventInfo()
         if not (eventType == "SPELL_PERIODIC_ENERGIZE" or eventType == "SPELL_ENERGIZE") then return end
@@ -2472,85 +2484,93 @@ end
             externalManaGainTimestamp = GetTime()
         end
     end
-	 local _, class = UnitClass("player")
+
+    -- Event Handling
+    local _, class = UnitClass("player")
     local function OnEvent(self, event, ...)
-    -- Check for energy and mana tick classes
-    if class == "ROGUE" or class == "DRUID" then
-        -- Show Energy Spark for ROGUE and DRUID in Cat Form
-        if PlayerFrameManaBar.energy then
-            local powerType = UnitPowerType("player")
-            if powerType == 3 then -- Energy (Cat Form)
-                PlayerFrameManaBar.energy.spark:SetAlpha(1)
-            else
+        -- Check for energy and mana tick classes
+        if class == "ROGUE" or class == "DRUID" then
+            -- Show Energy Spark for ROGUE and DRUID in Cat/Bear Form
+            if PlayerFrameManaBar.energy then
+                local powerType = UnitPowerType("player")
+                if powerType == 3 then -- Energy (Cat/Bear Form)
+                    PlayerFrameManaBar.energy.spark:SetAlpha(1)
+                else
+                    PlayerFrameManaBar.energy.spark:SetAlpha(0)
+                end
+            end
+        else
+            -- Hide Energy Spark for other classes
+            if PlayerFrameManaBar.energy then
                 PlayerFrameManaBar.energy.spark:SetAlpha(0)
             end
         end
-    else
-        -- Hide Energy Spark for other classes
-        if PlayerFrameManaBar.energy then
-            PlayerFrameManaBar.energy.spark:SetAlpha(0)
-        end
-    end
 
-    -- Mana Ticks for MAGE, PRIEST, WARLOCK, HUNTER, SHAMAN, PALADIN, and DRUID
-    if class == "MAGE" or class == "PRIEST" or class == "WARLOCK" or 
-       class == "HUNTER" or class == "SHAMAN" or class == "PALADIN" or 
-       class == "DRUID" then
-        if PlayerFrameManaBar.mana then
-            local powerType = UnitPowerType("player")
-            if powerType == 0 then -- Mana (caster forms, Moonkin Form, etc.)
-                PlayerFrameManaBar.mana.spark:SetAlpha(1)
-            else
+        -- Mana Ticks for MAGE, PRIEST, WARLOCK, HUNTER, SHAMAN, PALADIN, and DRUID
+        if class == "MAGE" or class == "PRIEST" or class == "WARLOCK" or
+           class == "HUNTER" or class == "SHAMAN" or class == "PALADIN" or
+           class == "DRUID" then
+            if PlayerFrameManaBar.mana then
+                local powerType = UnitPowerType("player")
+                if powerType == 0 then -- Mana (caster forms, Moonkin Form, etc.)
+					PlayerFrameManaBar.mana.spark:SetAlpha(1)
+				elseif class == "DRUID" and powerType == 1 then -- Rage (Bear Form)
+					PlayerFrameManaBar.mana.spark:SetAlpha(1)
+				else
+					PlayerFrameManaBar.mana.spark:SetAlpha(0)
+				end
+            end
+        else
+            -- Hide Mana Spark for other classes
+            if PlayerFrameManaBar.mana then
                 PlayerFrameManaBar.mana.spark:SetAlpha(0)
             end
         end
-    else
-        -- Hide Mana Spark for other classes
-        if PlayerFrameManaBar.mana then
-            PlayerFrameManaBar.mana.spark:SetAlpha(0)
+
+        if not (Lorti.energytick and (class == "ROGUE" or class == "DRUID" or
+            class == "MAGE" or class == "PRIEST" or class == "WARLOCK" or
+            class == "HUNTER" or class == "SHAMAN" or class == "PALADIN")) then
+            self:UnregisterAllEvents()
+            self:SetScript("OnEvent", nil)
+            return
         end
-    end
 
-    if not (Lorti.energytick and (class == "ROGUE" or class == "DRUID" or
-        class == "MAGE" or class == "PRIEST" or class == "WARLOCK" or 
-        class == "HUNTER" or class == "SHAMAN" or class == "PALADIN")) then
-        self:UnregisterAllEvents()
-        self:SetScript("OnEvent", nil)
-        return
-    end
-
-    if event == "PLAYER_LOGIN" then
-        AddTicks()
-        self:UnregisterEvent("PLAYER_LOGIN")
-    elseif event == "PLAYER_REGEN_DISABLED" then
-        if PlayerFrameManaBar.energy then PlayerFrameManaBar.energy.spark:SetAlpha(1) end
-        if PlayerFrameManaBar.mana then PlayerFrameManaBar.mana.spark:SetAlpha(0.4) end
-    elseif event == "PLAYER_REGEN_ENABLED" then
-        if PlayerFrameManaBar.energy then PlayerFrameManaBar.energy.spark:SetAlpha(1) end
-        if PlayerFrameManaBar.mana then PlayerFrameManaBar.mana.spark:SetAlpha(0.4) end
-    elseif event == "UPDATE_SHAPESHIFT_FORM" and class == "DRUID" then
-        -- Update spark visibility based on Druid form
-        if PlayerFrameManaBar.energy then
-            local powerType = UnitPowerType("player")
-            if powerType == 3 then -- Energy (Cat Form)
-                PlayerFrameManaBar.energy.spark:SetAlpha(1)
-                PlayerFrameManaBar.mana.spark:SetAlpha(0)
-            else
-                PlayerFrameManaBar.energy.spark:SetAlpha(0)
-                PlayerFrameManaBar.mana.spark:SetAlpha(1)
+        if event == "PLAYER_LOGIN" then
+            AddTicks()
+            self:UnregisterEvent("PLAYER_LOGIN")
+        elseif event == "PLAYER_REGEN_DISABLED" then
+            if PlayerFrameManaBar.energy then PlayerFrameManaBar.energy.spark:SetAlpha(1) end
+            if PlayerFrameManaBar.mana then PlayerFrameManaBar.mana.spark:SetAlpha(0.4) end
+        elseif event == "PLAYER_REGEN_ENABLED" then
+            if PlayerFrameManaBar.energy then PlayerFrameManaBar.energy.spark:SetAlpha(1) end
+            if PlayerFrameManaBar.mana then PlayerFrameManaBar.mana.spark:SetAlpha(0.4) end
+        elseif event == "UPDATE_SHAPESHIFT_FORM" and class == "DRUID" then
+            -- Update spark visibility based on Druid form
+            if PlayerFrameManaBar.energy then
+                local powerType = UnitPowerType("player")
+                if powerType == 3 then -- Energy (Cat Form)
+                    PlayerFrameManaBar.energy.spark:SetAlpha(1)
+                    PlayerFrameManaBar.mana.spark:SetAlpha(0)
+                elseif powerType == 1 then -- Rage (Bear Form)
+                    PlayerFrameManaBar.energy.spark:SetAlpha(0)
+                    PlayerFrameManaBar.mana.spark:SetAlpha(1)
+                else
+                    PlayerFrameManaBar.energy.spark:SetAlpha(0)
+                    PlayerFrameManaBar.mana.spark:SetAlpha(1)
+                end
             end
+        elseif event == "UNIT_POWER_UPDATE" then
+            UpdateEnergy()
+            UpdateMana()
+        elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
+            -- Handle spell cast success
+            OnSpellCastSucceeded()
+        elseif event == "COMBAT_LOG_EVENT_UNFILTERED" then
+            RealTick()
         end
-    elseif event == "UNIT_POWER_UPDATE" then
-        UpdateEnergy()
-        UpdateMana()
-    elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
-        -- Handle spell cast success
-        OnSpellCastSucceeded()
-    elseif event == "COMBAT_LOG_EVENT_UNFILTERED" then
-        RealTick()
     end
-end
 
+    -- Register Events
     local e = CreateFrame("Frame")
     for _, v in pairs(events) do e:RegisterEvent(v) end
     e:SetScript("OnEvent", OnEvent)
