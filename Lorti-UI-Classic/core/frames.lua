@@ -1175,7 +1175,9 @@ end
 
 MiniMapWorldMapButton:SetAlpha(0)
 MinimapBorderTop:SetAlpha(0)
-MinimapZoneText:SetPoint('CENTER', Minimap, 'TOP', 0, 10)
+if not (IsAddOnLoaded("DFMinimap")) then
+	MinimapZoneText:SetPoint('CENTER', Minimap, 'TOP', 0, 10)
+end
 MinimapZoneText:SetShadowOffset(2,-2)
 MinimapZoneText:SetShadowColor(0,0,0)
 

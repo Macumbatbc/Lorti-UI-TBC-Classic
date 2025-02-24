@@ -4,9 +4,19 @@ local events = {
 
 local function MoveBuffs(buttonName, index)
 	if (Lorti.bigbuff == true) then
-		BuffFrame:ClearAllPoints()
-		BuffFrame:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", -120, -10)
-		BuffFrame:SetScale(1.6)
+		if not (IsAddOnLoaded("DFMinimap")) then
+			BuffFrame:ClearAllPoints()
+			BuffFrame:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", -120, -10)
+			BuffFrame:SetScale(1.6)
+		else
+			BuffFrame:SetScale(1.6)
+		end
+	end
+	if not Lorti.bigbuff and (IsAddOnLoaded("DFMinimap")) then
+		
+			BuffFrame:ClearAllPoints()
+			BuffFrame:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", -220, -10)
+			
 	end
 end
 hooksecurefunc("UIParent_UpdateTopFramePositions", MoveBuffs)
