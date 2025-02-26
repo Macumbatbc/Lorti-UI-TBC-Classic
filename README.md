@@ -90,7 +90,7 @@ https://github.com/Macumbatbc/CombatIndicator
 ![image](https://github.com/user-attachments/assets/1a05ef81-53c0-431e-88de-dc0d79da0b4d)
 
 ## BLP files
-If you want to darken your UI without the Black borders option into LortiUI, i advice you thoses blp file. it will darken better the whole UI. You just need to place thoses folders in Interface folder (before AddOns folder) and it's done.
+If you want to darken your UI without the Black borders option into LortiUI, i advice you thoses blp files. it will darken better the whole UI. You just need to place thoses folders in Interface folder (before AddOns folder) and it's done.
 You can download [Interface](https://github.com/Macumbatbc/Lorti-UI-TBC-Classic/raw/refs/heads/main/Interface.zip) folder to darken the whole UI, and download [Icons DarkUI](https://github.com/Macumbatbc/Lorti-UI-TBC-Classic/raw/refs/heads/main/Icons%20darkUI.zip) to add a black border around all icons in the game.
 
 ![image](https://github.com/user-attachments/assets/d77e3775-491f-4c62-b8a4-649f8b535d8e)
