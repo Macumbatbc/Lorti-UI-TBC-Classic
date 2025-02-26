@@ -89,6 +89,10 @@ https://github.com/Macumbatbc/CombatIndicator
 
 ![image](https://github.com/user-attachments/assets/1a05ef81-53c0-431e-88de-dc0d79da0b4d)
 
+## BLP files
+If you want to darken your UI without the Black borders option into LortiUI, i advice you thoses blp file. it will darken better the whole UI. You just need to place thoses folders in Interface folder (before AddOns folder) and it's done.
+
+![image](https://github.com/user-attachments/assets/d77e3775-491f-4c62-b8a4-649f8b535d8e)
 
 ## Credit
 For all the unit frames addon i used :
