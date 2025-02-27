@@ -11,12 +11,11 @@ local function MoveBuffs(buttonName, index)
 		else
 			BuffFrame:SetScale(1.6)
 		end
-	end
-	if not Lorti.bigbuff and (IsAddOnLoaded("DFMinimap")) then
-		
+	else
+		if (IsAddOnLoaded("DFMinimap")) then	
 			BuffFrame:ClearAllPoints()
-			BuffFrame:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", -220, -10)
-			
+			BuffFrame:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", -230, -10)	
+		end
 	end
 end
 hooksecurefunc("UIParent_UpdateTopFramePositions", MoveBuffs)
