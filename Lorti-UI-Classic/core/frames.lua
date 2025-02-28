@@ -1775,41 +1775,44 @@ end
 
 
 local function colour(statusbar, unit)
-    if not statusbar then
+    if not statusbar or not unit then
         return
     end
-    if unit then
-        if UnitIsConnected(unit) and unit == statusbar.unit then
-            if Lorti.ColoredHP and UnitIsEnemy("player", unit) then
-                -- Set red health bar for enemy units
+
+    if UnitIsConnected(unit) and unit == statusbar.unit then
+        -- Check if the unit is tapped first
+        if (not UnitPlayerControlled(unit) and UnitIsTapDenied(unit)) or 
+           (UnitIsPlayer(unit) and not UnitIsConnected(unit)) or 
+           (UnitIsDeadOrGhost(unit)) then
+            statusbar:SetStatusBarColor(.5, .5, .5) -- Grey for tapped, disconnected, or dead/ghost units
+        elseif Lorti.ColoredHP and UnitIsEnemy("player", unit) then
+            -- Set red health bar for enemy units if ColoredHP is enabled
+            statusbar:SetStatusBarColor(1, 0, 0)
+        elseif UnitIsPlayer(unit) and UnitClass(unit) then
+            if Lorti.classbars == true and UnitExists(unit) and not UnitIsDead(unit) and not UnitIsDeadOrGhost(unit) and not UnitIsGhost(unit) and UnitIsConnected(unit) then
+                -- Set class-colored health bar for players
+                local _, class = UnitClass(unit)
+                local c = RAID_CLASS_COLORS[class]
+                if c then
+                    statusbar:SetStatusBarColor(c.r, c.g, c.b)
+                end
+            else
+                -- Default green for friendly players, red for hostile
+                if UnitIsFriend("player", unit) or UnitIsFriend("pet", unit) then
+                    statusbar:SetStatusBarColor(0, 1, 0)
+                else
+                    statusbar:SetStatusBarColor(1, 0, 0)
+                end
+            end
+        else
+            -- Handle other cases (neutral, etc.)
+            local red, green = UnitSelectionColor(unit)
+            if red == 0 then
+                statusbar:SetStatusBarColor(0, 1, 0)
+            elseif green == 0 then
                 statusbar:SetStatusBarColor(1, 0, 0)
             else
-                if UnitIsPlayer(unit) and UnitClass(unit) then
-                    if (Lorti.classbars == true and UnitExists(unit) and not UnitIsDead(unit) and not UnitIsDeadOrGhost(unit) and not UnitIsGhost(unit) and UnitIsConnected(unit)) then
-                        local _, class = UnitClass(unit)
-                        local c = RAID_CLASS_COLORS[class]
-                        if c then
-                            statusbar:SetStatusBarColor(c.r, c.g, c.b)
-                        end
-                    else
-                        if (UnitIsFriend("player", unit) or UnitIsFriend("pet", unit)) then
-                            statusbar:SetStatusBarColor(0, 1, 0)
-                        else
-                            statusbar:SetStatusBarColor(1, 0, 0)
-                        end
-                    end
-                elseif (not UnitPlayerControlled(unit) and UnitIsTapDenied(unit)) or (UnitIsPlayer(unit) and not UnitIsConnected(unit)) or (UnitIsDeadOrGhost(unit)) then
-                    statusbar:SetStatusBarColor(.5, .5, .5)
-                else
-                    local red, green = UnitSelectionColor(unit)
-                    if red == 0 then
-                        statusbar:SetStatusBarColor(0, 1, 0)
-                    elseif green == 0 then
-                        statusbar:SetStatusBarColor(1, 0, 0)
-                    else
-                        statusbar:SetStatusBarColor(1, 1, 0)
-                    end
-                end
+                statusbar:SetStatusBarColor(1, 1, 0)
             end
         end
     end
