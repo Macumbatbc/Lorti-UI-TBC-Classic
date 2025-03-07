@@ -1847,14 +1847,14 @@ local function OnLoad()
     end
 	
 	-- Hide the default targettarget portrait
-    if TargetFrameToT.portrait then
-        TargetFrameToT.portrait:Hide()
-    end
+  --  if TargetFrameToT.portrait then
+    --    TargetFrameToT.portrait:Hide()
+   -- end
 
     -- Hide the default focustarget portrait
-    if FocusFrameToT.portrait then
-		FocusFrameToT.portrait:Hide()
-	end
+--    if FocusFrameToT.portrait then
+--		FocusFrameToT.portrait:Hide()
+--	end
 end
 
 
