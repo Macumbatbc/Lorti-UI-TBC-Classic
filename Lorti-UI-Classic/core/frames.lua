@@ -1727,11 +1727,27 @@ function ApplyFonts()
 				local arenaFramehealthtext = _G["ArenaEnemyFrame"..i .. "HealthBarText"]
 				local arenaFramemanatext = _G["ArenaEnemyFrame"..i .. "ManaBarText"]
 				local arenaFramecastbar = _G["ArenaEnemyFrame"..i .. "CastingBar"]
-				
+				local arenapet = _G["ArenaEnemyFrame"..i .. "PetFrame"]
 				arenaFrame:SetScale(2);
 				-- Reposition the arena frame
-				arenaFrame:ClearAllPoints() -- Clear any existing points
-				arenaFrame:SetPoint("TOPLEFT", UIParent, "CENTER", 250 + (i * 100), 100) 
+				arenaFrame:ClearAllPoints() 
+				arenapet:ClearAllPoints()
+				-- arenaFrame:SetPoint("TOPLEFT", UIParent, "CENTER", 250 + (i * 100), 100)
+				ArenaEnemyFrame1:SetPoint("CENTER", Minimap, "CENTER", -70, -90)
+				ArenaEnemyFrame1PetFrame:SetPoint("CENTER", ArenaEnemyFrame1, "CENTER", 0, -40)
+				
+				ArenaEnemyFrame2:SetPoint("CENTER", ArenaEnemyFrame1, "CENTER", 0, -40)
+				ArenaEnemyFrame2PetFrame:SetPoint("CENTER", ArenaEnemyFrame2, "CENTER", 0, -40)
+				
+				ArenaEnemyFrame3:SetPoint("CENTER", ArenaEnemyFrame2, "CENTER", 0, -40)
+				ArenaEnemyFrame3PetFrame:SetPoint("CENTER", ArenaEnemyFrame3, "CENTER", 0, -40)
+				
+				ArenaEnemyFrame4:SetPoint("CENTER", ArenaEnemyFrame3, "CENTER", 0, -40)
+				ArenaEnemyFrame4PetFrame:SetPoint("CENTER", ArenaEnemyFrame4, "CENTER", 0, -40)
+				
+				ArenaEnemyFrame5:SetPoint("CENTER", ArenaEnemyFrame4, "CENTER", 0, -40)
+				ArenaEnemyFrame5PetFrame:SetPoint("CENTER", ArenaEnemyFrame5, "CENTER", 0, -40)
+				
 				arenaFramecastbar:SetScale(0.8);
 				arenaFramename:SetFont(Lorti.fontFamily, Lorti.NumSize-3, StringType)
 				arenaFramehealthtext:SetPoint("CENTER", arenaFramehealth, "CENTER", 2, 2)			
@@ -2981,10 +2997,14 @@ local function Usable(button, r, g, b, a)
             icon:SetDesaturated(true)
             --  end
         else
+			if not InCombatLockdown() then 
             --   if r ~= 1.0 or b ~= 1.0 or g ~= 1.0 or a ~= 1.0 then
             icon:SetVertexColor(1.0, 1.0, 1.0, 1.0)
             icon:SetDesaturated(false)
             --  end
+			else 
+				icon:SetDesaturated(true)
+			end
         end
     end
 end
