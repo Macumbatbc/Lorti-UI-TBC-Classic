@@ -462,11 +462,11 @@ for i,v in pairs({
       	LootFrameInsetBg,
       	LootFrameTitleBg,	
 	MerchantFrameTitleBg,
-	ArenaEnemyFrame1Texture,
-	ArenaEnemyFrame2Texture,
-	ArenaEnemyFrame3Texture,
-	ArenaEnemyFrame4Texture,
-	ArenaEnemyFrame5Texture,
+	-- ArenaEnemyFrame1Texture,
+	-- ArenaEnemyFrame2Texture,
+	-- ArenaEnemyFrame3Texture,
+	-- ArenaEnemyFrame4Texture,
+	-- ArenaEnemyFrame5Texture,
 }) do
    v:SetVertexColor(.05, .05, .05)
 end
@@ -1762,6 +1762,17 @@ function ApplyFonts()
 				arenaFramemanatext:SetShadowOffset(1,-1)
 				arenaFramemanatext:SetShadowColor(0,0,0)
 			end
+		end
+		
+		--Darker color stuff
+		for i,v in pairs({
+			ArenaEnemyFrame1Texture,
+			ArenaEnemyFrame2Texture,
+			ArenaEnemyFrame3Texture,
+			ArenaEnemyFrame4Texture,
+			ArenaEnemyFrame5Texture,
+		}) do
+		   v:SetVertexColor(.05, .05, .05)
 		end
 	else
 		ArenaEnemyFrames:SetAlpha(0)
